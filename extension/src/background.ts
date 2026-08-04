@@ -11,6 +11,22 @@ import * as cdp from "./cdp.js";
 let ws: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let linked = false;
+let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
+
+function startKeepAlive(): void {
+  if (keepAliveTimer) return;
+  // MV3 kills the SW during long fills; light work keeps it awake while Linked
+  keepAliveTimer = setInterval(() => {
+    void chrome.storage.session.set({ perfectHeartbeat: Date.now() }).catch(() => {});
+  }, 20000);
+}
+
+function stopKeepAlive(): void {
+  if (keepAliveTimer) {
+    clearInterval(keepAliveTimer);
+    keepAliveTimer = null;
+  }
+}
 
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 
@@ -105,6 +121,7 @@ async function connectLoop(): Promise<void> {
     });
     ws.addEventListener("close", () => {
       linked = false;
+      stopKeepAlive();
       broadcast({ type: "perfect_event", event: "disconnected" });
       void cdp.detachAll();
       reconnectTimer = setTimeout(() => void connectLoop(), 2000);
@@ -133,6 +150,8 @@ async function onMessage(raw: string): Promise<void> {
 
   if (msg.type === "hello_ack") {
     linked = !!msg.ok;
+    if (linked) startKeepAlive();
+    else stopKeepAlive();
     broadcast({
       type: "perfect_event",
       event: linked ? "connected" : "disconnected",

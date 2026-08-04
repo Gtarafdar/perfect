@@ -102,7 +102,7 @@ export async function moveMouse(
   await attach(tabId);
   const from = lastMouse.get(tabId) ?? { x: x - 80, y: y - 60 };
   const dist = Math.hypot(x - from.x, y - from.y);
-  const steps = opts?.steps ?? Math.max(12, Math.min(36, Math.round(dist / 18)));
+  const steps = opts?.steps ?? Math.max(8, Math.min(22, Math.round(dist / 28)));
 
   const cp1 = {
     x: from.x + (x - from.x) * 0.25 + (Math.random() - 0.5) * 40,
@@ -135,7 +135,7 @@ export async function moveMouse(
       y: jy,
     });
     notifyCursor(tabId, jx, jy, true);
-    await delay(8 + Math.random() * 14);
+    await delay(5 + Math.random() * 8);
   }
 
   await send(tabId, "Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
@@ -145,7 +145,7 @@ export async function moveMouse(
 
 export async function clickAt(tabId: number, x: number, y: number): Promise<void> {
   await moveMouse(tabId, x, y);
-  await delay(80 + Math.random() * 120);
+  await delay(50 + Math.random() * 70);
   await send(tabId, "Input.dispatchMouseEvent", {
     type: "mousePressed",
     x,
@@ -153,7 +153,7 @@ export async function clickAt(tabId: number, x: number, y: number): Promise<void
     button: "left",
     clickCount: 1,
   });
-  await delay(40 + Math.random() * 60);
+  await delay(25 + Math.random() * 35);
   await send(tabId, "Input.dispatchMouseEvent", {
     type: "mouseReleased",
     x,
@@ -162,22 +162,22 @@ export async function clickAt(tabId: number, x: number, y: number): Promise<void
     clickCount: 1,
   });
   lastMouse.set(tabId, { x, y });
-  await delay(120 + Math.random() * 100);
+  await delay(60 + Math.random() * 60);
 }
 
 /**
  * Type like a person: per-character insert with variable delay.
- * Occasional slightly longer pauses (thinking / looking at the field).
+ * Tuned to stay visible without sleeping the MV3 service worker.
  */
 export async function typeHuman(tabId: number, text: string): Promise<void> {
   await attach(tabId);
   for (let i = 0; i < text.length; i++) {
     const ch = text[i]!;
     await send(tabId, "Input.insertText", { text: ch });
-    let ms = 35 + Math.random() * 55;
-    if (ch === " " || ch === "@" || ch === "." || ch === ",") ms += 40 + Math.random() * 80;
-    if (i > 0 && i % (7 + Math.floor(Math.random() * 5)) === 0) {
-      ms += 120 + Math.random() * 180;
+    let ms = 18 + Math.random() * 28;
+    if (ch === " " || ch === "@" || ch === "." || ch === ",") ms += 20 + Math.random() * 35;
+    if (i > 0 && i % (9 + Math.floor(Math.random() * 4)) === 0) {
+      ms += 60 + Math.random() * 80;
     }
     await delay(ms);
   }
