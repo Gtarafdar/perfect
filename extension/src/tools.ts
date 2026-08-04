@@ -1,6 +1,6 @@
 import * as cdp from "./cdp.js";
 import * as tabs from "./tabs.js";
-import { getRef, highlightRef, snapshot } from "./snapshot.js";
+import { getRef, snapshot, focusRef, readRefValue, nativeFillRef, resolveTarget } from "./snapshot.js";
 import {
   classify,
   hostFromUrl,
@@ -296,8 +296,15 @@ export async function runTool(
         }
         if (!info) return { ok: false, error: `Unknown ref ${ref}. Take a new snapshot.` };
         await showHud(tabId, true);
-        await highlightRef(tabId, ref);
-        await cdp.clickAt(tabId, info.x, info.y);
+        const ok = await focusRef(tabId, ref);
+        if (!ok) {
+          return {
+            ok: false,
+            error: `Could not focus ${label} (${ref}). Take a new snapshot.`,
+            decision,
+            risk,
+          };
+        }
         await pushLog(tool, `click ${label} (${reasons.join(",")})`);
         return { ok: true, result: { tabId, ref, label }, decision, risk };
       }
@@ -329,24 +336,42 @@ export async function runTool(
         }
         await showHud(tabId, true);
         if (ref) {
-          if (!info) return { ok: false, error: `Unknown ref ${ref}` };
-          // Scroll field into view, move cursor, click to focus — like a person
-          await cdp.evaluate(
-            tabId,
-            `window.scrollTo({ top: Math.max(0, ${info.y} - 200), behavior: 'smooth' })`,
-          );
-          await cdp.delay(280 + Math.random() * 120);
-          await highlightRef(tabId, ref);
-          await cdp.clickAt(tabId, info.x, info.y);
-          await cdp.delay(150 + Math.random() * 120);
+          if (!info) return { ok: false, error: `Unknown ref ${ref}. Take a new snapshot.` };
+          const focused = await focusRef(tabId, ref);
+          if (!focused) {
+            return {
+              ok: false,
+              error: `Could not focus "${fieldLabel}" (${ref}). Snapshot again.`,
+              decision,
+              risk,
+            };
+          }
         }
         if (tool === "browser_fill") {
           await cdp.pressKey(tabId, "Meta+a");
           await cdp.delay(40 + Math.random() * 40);
           await cdp.pressKey(tabId, "Backspace");
-          await cdp.delay(80 + Math.random() * 80);
+          await cdp.delay(60 + Math.random() * 60);
         }
         await cdp.typeHuman(tabId, text);
+
+        // Verify the field actually received the text — logs lied before when click missed
+        if (ref && tool === "browser_fill") {
+          await cdp.delay(50);
+          const got = await readRefValue(tabId, ref);
+          if (got !== text) {
+            const rescued = await nativeFillRef(tabId, ref, text);
+            if (!rescued) {
+              return {
+                ok: false,
+                error: `Fill did not stick on "${fieldLabel}" (got ${JSON.stringify(got)}). Try a new snapshot.`,
+                decision,
+                risk,
+              };
+            }
+          }
+        }
+
         if (args.submit) {
           await cdp.delay(100 + Math.random() * 100);
           await cdp.pressKey(tabId, "Enter");
@@ -379,8 +404,13 @@ export async function runTool(
           return { ok: false, error: "Denied", decision };
         }
         if (args.ref) {
-          const info = getRef(String(args.ref));
-          if (info) await cdp.evaluate(tabId, `window.scrollBy(0, ${info.y - 200})`);
+          const box = await resolveTarget(tabId, String(args.ref));
+          if (box) {
+            await cdp.evaluate(
+              tabId,
+              `window.scrollBy({ top: ${box.y - 200}, left: 0, behavior: 'smooth' })`,
+            );
+          }
         } else {
           await cdp.scrollWheel(
             tabId,
