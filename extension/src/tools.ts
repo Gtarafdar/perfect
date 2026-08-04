@@ -347,17 +347,30 @@ export async function runTool(
             };
           }
         }
+
+        // Visible cursor already landed on the field. Prefer reliable fill:
+        // short values type out; longer values use native set after focus so the
+        // MV3 service worker doesn't die mid-keystroke and drop Linked.
         if (tool === "browser_fill") {
           await cdp.pressKey(tabId, "Meta+a");
-          await cdp.delay(40 + Math.random() * 40);
+          await cdp.delay(25);
           await cdp.pressKey(tabId, "Backspace");
-          await cdp.delay(60 + Math.random() * 60);
+          await cdp.delay(30);
         }
-        await cdp.typeHuman(tabId, text);
 
-        // Verify the field actually received the text — logs lied before when click missed
+        if (text.length <= 12) {
+          await cdp.typeHuman(tabId, text);
+        } else if (ref) {
+          // Type a short prefix so it still looks human, then commit the rest
+          const prefix = text.slice(0, 4);
+          await cdp.typeHuman(tabId, prefix);
+          await nativeFillRef(tabId, ref, text);
+        } else {
+          await cdp.typeHuman(tabId, text);
+        }
+
         if (ref && tool === "browser_fill") {
-          await cdp.delay(50);
+          await cdp.delay(30);
           const got = await readRefValue(tabId, ref);
           if (got !== text) {
             const rescued = await nativeFillRef(tabId, ref, text);
@@ -373,7 +386,7 @@ export async function runTool(
         }
 
         if (args.submit) {
-          await cdp.delay(100 + Math.random() * 100);
+          await cdp.delay(80);
           await cdp.pressKey(tabId, "Enter");
         }
         await pushLog(tool, `${tool} ${fieldLabel}`);

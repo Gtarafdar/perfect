@@ -87,8 +87,15 @@ export async function screenshotPng(tabId: number): Promise<string> {
 }
 
 function notifyCursor(tabId: number, x: number, y: number, visible: boolean): void {
+  // Throttle overlay updates — flooding tabs.sendMessage was dropping the SW/WS mid-fill
+  const now = Date.now();
+  const prev = lastCursorNotify.get(tabId);
+  if (visible && prev && now - prev < 32) return;
+  lastCursorNotify.set(tabId, now);
   cursorSink?.(tabId, x, y, visible);
 }
+
+const lastCursorNotify = new Map<number, number>();
 
 /**
  * Smooth human-like mouse move (cubic bezier + jitter), then update overlay.
@@ -139,6 +146,7 @@ export async function moveMouse(
   }
 
   await send(tabId, "Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
+  lastCursorNotify.delete(tabId);
   notifyCursor(tabId, x, y, true);
   lastMouse.set(tabId, { x, y });
 }
