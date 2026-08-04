@@ -97,6 +97,7 @@ export async function resolveTabId(tabId?: number): Promise<number> {
 
 /**
  * Navigate without spawning extra tabs: reuse claimed tab unless newTab=true.
+ * Same-URL → activate only (no reload flash).
  */
 export async function navigateClaimed(
   url: string,
@@ -106,20 +107,40 @@ export async function navigateClaimed(
     const t = await createClaimedTab(url, true);
     return t.id!;
   }
-  if (opts.tabId != null) {
-    const id = await resolveTabId(opts.tabId);
-    await chrome.tabs.update(id, { url, active: true });
-    return id;
+
+  const targetId =
+    opts.tabId != null
+      ? await resolveTabId(opts.tabId)
+      : getClaimed().length > 0
+        ? await resolveTabId(getClaimed()[0])
+        : null;
+
+  if (targetId != null) {
+    const tab = await chrome.tabs.get(targetId);
+    if (samePageUrl(tab.url ?? "", url)) {
+      // Already there — just focus, don't reload (avoids white flash)
+      await chrome.tabs.update(targetId, { active: true });
+      return targetId;
+    }
+    await chrome.tabs.update(targetId, { url, active: true });
+    return targetId;
   }
-  // Default: reuse existing claimed tab if any
-  const existing = getClaimed();
-  if (existing.length > 0) {
-    const id = await resolveTabId(existing[0]);
-    await chrome.tabs.update(id, { url, active: true });
-    return id;
-  }
+
   const t = await createClaimedTab(url, true);
   return t.id!;
+}
+
+/** Compare URLs ignoring trailing slash / hash noise for "already open" checks. */
+function samePageUrl(current: string, next: string): boolean {
+  try {
+    const a = new URL(current);
+    const b = new URL(next);
+    const norm = (u: URL) =>
+      `${u.protocol}//${u.host}${u.pathname.replace(/\/$/, "")}${u.search}`;
+    return norm(a) === norm(b);
+  } catch {
+    return current === next;
+  }
 }
 
 export async function listTabs(all: boolean) {

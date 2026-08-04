@@ -193,6 +193,9 @@ export async function runTool(
   // Stop is a one-shot cancel — next real tool resumes work
   if (stopped) clearStop();
 
+  // Touch storage every tool so MV3 doesn't kill the SW mid-fill
+  void chrome.storage.session.set({ perfectHeartbeat: Date.now() }).catch(() => {});
+
   const settings = await loadSettings();
 
   try {
@@ -374,6 +377,9 @@ export async function runTool(
           return { ok: false, error: "Denied", decision, risk };
         }
         await showHud(tabId, true);
+        // Keep SW alive during fill (MV3 otherwise dies mid-tool)
+        void chrome.storage.session.set({ perfectHeartbeat: Date.now() });
+
         if (ref) {
           if (!info) return { ok: false, error: `Unknown ref ${ref}. Take a new snapshot.` };
           const focused = await focusRef(tabId, ref);
@@ -387,46 +393,44 @@ export async function runTool(
           }
         }
 
-        // Visible cursor already landed on the field. Prefer reliable fill:
-        // short values type out; longer values use native set after focus so the
-        // MV3 service worker doesn't die mid-keystroke and drop Linked.
-        if (tool === "browser_fill") {
-          await cdp.pressKey(tabId, "Meta+a");
-          await cdp.delay(25);
-          await cdp.pressKey(tabId, "Backspace");
-          await cdp.delay(30);
-        }
-
-        if (text.length <= 12) {
-          await cdp.typeHuman(tabId, text);
-        } else if (ref) {
-          // Type a short prefix so it still looks human, then commit the rest
-          const prefix = text.slice(0, 4);
-          await cdp.typeHuman(tabId, prefix);
-          await nativeFillRef(tabId, ref, text);
+        // Prefer human typing in ONE in-page script (keeps SW alive).
+        // nativeFill is fallback only if typing doesn't stick.
+        void chrome.storage.session.set({ perfectHeartbeat: Date.now() });
+        let filled = false;
+        if (ref) {
+          try {
+            filled = await cdp.typeIntoRef(tabId, ref, text);
+          } catch {
+            filled = false;
+          }
+          if (!filled) {
+            filled = await nativeFillRef(tabId, ref, text);
+          }
         } else {
-          await cdp.typeHuman(tabId, text);
-        }
-
-        if (ref && tool === "browser_fill") {
-          await cdp.delay(30);
-          const got = await readRefValue(tabId, ref);
-          if (got !== text) {
-            const rescued = await nativeFillRef(tabId, ref, text);
-            if (!rescued) {
-              return {
-                ok: false,
-                error: `Fill did not stick on "${fieldLabel}" (got ${JSON.stringify(got)}). Try a new snapshot.`,
-                decision,
-                risk,
-              };
-            }
+          try {
+            await cdp.typeHuman(tabId, text);
+            filled = true;
+          } catch {
+            filled = false;
           }
         }
 
+        if (!filled) {
+          return {
+            ok: false,
+            error: `Fill did not stick on "${fieldLabel}". Try a new snapshot.`,
+            decision,
+            risk,
+          };
+        }
+
         if (args.submit) {
-          await cdp.delay(80);
-          await cdp.pressKey(tabId, "Enter");
+          try {
+            await cdp.delay(80);
+            await cdp.pressKey(tabId, "Enter");
+          } catch {
+            /* ignore */
+          }
         }
         await pushLog(tool, `${tool} ${fieldLabel}`);
         return {
@@ -460,14 +464,17 @@ export async function runTool(
           if (box) {
             await cdp.evaluate(
               tabId,
-              `window.scrollBy({ top: ${box.y - 200}, left: 0, behavior: 'smooth' })`,
+              `window.scrollBy({ top: ${box.y - 200}, left: 0, behavior: 'instant' })`,
             );
           }
         } else {
-          await cdp.scrollWheel(
+          const dir = String(args.direction ?? "down");
+          const amount = Number(args.amount ?? 3) * 100;
+          const dy = dir === "up" ? -amount : dir === "down" ? amount : 0;
+          const dx = dir === "left" ? -amount : dir === "right" ? amount : 0;
+          await cdp.evaluate(
             tabId,
-            String(args.direction ?? "down"),
-            Number(args.amount ?? 3),
+            `window.scrollBy({ top: ${dy}, left: ${dx}, behavior: 'instant' })`,
           );
         }
         await pushLog(tool, "scroll");
@@ -522,9 +529,10 @@ export async function runTool(
 
 async function showHud(tabId: number, show: boolean): Promise<void> {
   try {
+    await ensureContent(tabId);
     await chrome.tabs.sendMessage(tabId, { type: "perfect_hud", show });
   } catch {
-    /* content script may be missing on restricted pages */
+    /* restricted pages */
   }
 }
 
@@ -535,6 +543,7 @@ async function showCursor(
   visible: boolean,
 ): Promise<void> {
   try {
+    await ensureContent(tabId);
     await chrome.tabs.sendMessage(tabId, {
       type: "perfect_cursor",
       x,
@@ -542,7 +551,23 @@ async function showCursor(
       visible,
     });
   } catch {
-    /* content script may be missing */
+    /* restricted pages */
+  }
+}
+
+/** Quietly inject content script if the tab never got it (no reload). */
+async function ensureContent(tabId: number): Promise<void> {
+  try {
+    await chrome.tabs.sendMessage(tabId, { type: "perfect_ping" });
+  } catch {
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ["content.js"],
+      });
+    } catch {
+      /* chrome:// etc */
+    }
   }
 }
 

@@ -534,12 +534,13 @@ var init_bridge = __esm({
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           if (!/disconnected|not connected/i.test(msg)) throw e;
-          const back = await this.waitUntilConnected(1e4);
+          const back = await this.waitUntilConnected(2e4);
           if (!back) {
             throw new Error(
               `${msg} \u2014 wait for Linked, then retry the same tool (same tabId/ref).`
             );
           }
+          await new Promise((r) => setTimeout(r, 400));
           return this.callToolOnce(tool, args2, timeoutMs);
         }
       }

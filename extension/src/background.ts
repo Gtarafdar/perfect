@@ -12,19 +12,22 @@ let ws: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let linked = false;
 let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
+/** Bumps on each new socket so stale close handlers don't schedule reconnect loops */
+let socketGen = 0;
 
 function startKeepAlive(): void {
   if (keepAliveTimer) return;
   // MV3 kills the SW during long fills; light work keeps it awake while Linked
   keepAliveTimer = setInterval(() => {
     void chrome.storage.session.set({ perfectHeartbeat: Date.now() }).catch(() => {});
-    // Also poke the bridge so idle links stay warm
     try {
-      ws?.send(JSON.stringify({ type: "ping", t: Date.now() }));
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "ping", t: Date.now() }));
+      }
     } catch {
       /* */
     }
-  }, 10000);
+  }, 4000);
 }
 
 function stopKeepAlive(): void {
@@ -66,7 +69,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     void (async () => {
       const settings = await regenerateToken();
       linked = false;
-      void connectLoop();
+      void connectLoop({ force: true });
       sendResponse({ ok: true, settings });
     })();
     return true;
@@ -82,18 +85,33 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return false;
   }
   if (msg?.type === "perfect_reconnect") {
-    void connectLoop();
+    void connectLoop({ force: true });
     sendResponse({ ok: true });
     return false;
   }
   return false;
 });
 
-async function connectLoop(): Promise<void> {
+/**
+ * Connect to MCP bridge.
+ * force=false (default): no-op if already open/connecting — prevents the
+ * close→schedule→close flash loop.
+ */
+async function connectLoop(opts?: { force?: boolean }): Promise<void> {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
   }
+
+  const force = !!opts?.force;
+  if (
+    !force &&
+    ws &&
+    (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)
+  ) {
+    return;
+  }
+
   const settings = await loadSettings();
   if (!settings.token) {
     linked = false;
@@ -103,17 +121,22 @@ async function connectLoop(): Promise<void> {
   }
 
   try {
-    if (ws) {
+    const gen = ++socketGen;
+    const prev = ws;
+    ws = null;
+    if (prev) {
       try {
-        ws.close();
+        prev.close();
       } catch {
         /* */
       }
-      ws = null;
     }
-    ws = new WebSocket(`ws://127.0.0.1:${settings.wsPort}`);
-    ws.addEventListener("open", () => {
-      ws?.send(
+
+    const socket = new WebSocket(`ws://127.0.0.1:${settings.wsPort}`);
+    ws = socket;
+    socket.addEventListener("open", () => {
+      if (gen !== socketGen || ws !== socket) return;
+      socket.send(
         JSON.stringify({
           type: "hello",
           protocolVersion: PROTOCOL_VERSION,
@@ -122,17 +145,21 @@ async function connectLoop(): Promise<void> {
         }),
       );
     });
-    ws.addEventListener("message", (ev) => {
+    socket.addEventListener("message", (ev) => {
+      if (gen !== socketGen || ws !== socket) return;
       void onMessage(String(ev.data));
     });
-    ws.addEventListener("close", () => {
+    socket.addEventListener("close", () => {
+      // Ignore closes from sockets we intentionally replaced
+      if (gen !== socketGen || ws !== socket) return;
       linked = false;
+      ws = null;
       stopKeepAlive();
       broadcast({ type: "perfect_event", event: "disconnected" });
       void cdp.detachAll();
       reconnectTimer = setTimeout(() => void connectLoop(), 2000);
     });
-    ws.addEventListener("error", () => {
+    socket.addEventListener("error", () => {
       /* close handler reconnects */
     });
   } catch {
@@ -161,13 +188,17 @@ async function onMessage(raw: string): Promise<void> {
   }
 
   if (msg.type === "hello_ack") {
+    const prev = linked;
     linked = !!msg.ok;
     if (linked) startKeepAlive();
     else stopKeepAlive();
-    broadcast({
-      type: "perfect_event",
-      event: linked ? "connected" : "disconnected",
-    });
+    // Only broadcast when link state actually changes — stops UI thrash
+    if (prev !== linked) {
+      broadcast({
+        type: "perfect_event",
+        event: linked ? "connected" : "disconnected",
+      });
+    }
     return;
   }
 

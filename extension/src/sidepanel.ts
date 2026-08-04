@@ -32,8 +32,10 @@ const devServerPath = document.getElementById("devServerPath") as HTMLInputEleme
 
 let cached: State | null = null;
 let lastRenderKey = "";
-/** Don't flash "Waiting" on a single flaky poll while still Linked */
+/** Don't flash setup UI on brief disconnect blips while reconnecting */
 let linkedStickyUntil = 0;
+/** Once we've been Linked this panel session, keep setup hidden during blips */
+let everLinked = false;
 let refreshInFlight: Promise<void> | null = null;
 
 function snippetOpts(state: State) {
@@ -72,9 +74,10 @@ async function refresh(): Promise<void> {
       })) as State | undefined;
       if (!state?.settings) return;
 
-      // Sticky linked: ignore a single false blip for 1.5s (SW wake / race)
+      // Sticky linked: ignore false blips for 30s (reconnect happens in background)
       if (state.linked) {
-        linkedStickyUntil = Date.now() + 1500;
+        linkedStickyUntil = Date.now() + 30000;
+        everLinked = true;
       } else if (Date.now() < linkedStickyUntil) {
         state.linked = true;
       }
@@ -103,7 +106,7 @@ function render(state: State): void {
     ? "Bridge live · errors stay below"
     : "Paste the setup prompt in Cursor — I’ll handle the rest";
 
-  setupBox.hidden = state.linked;
+  setupBox.hidden = state.linked || everLinked;
   if (!tokenInput.value && state.settings.token) {
     tokenInput.value = "••••••••••••••••";
   }
@@ -258,19 +261,23 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.type !== "perfect_event") return;
   const ev = msg.event as string;
   if (ev === "tool_start") return;
-  if (ev === "tool_end" && msg.payload?.ok === true) {
-    // Success clears HUD — refresh once, no poll storm
+  // Silent reconnect: don't thrash UI on disconnected while sticky/everLinked
+  if (ev === "disconnected" && (everLinked || Date.now() < linkedStickyUntil)) {
+    return;
+  }
+  if (ev === "connected") {
+    everLinked = true;
+    linkedStickyUntil = Date.now() + 30000;
     lastRenderKey = "";
     void refresh();
     return;
   }
-  if (
-    ev === "connected" ||
-    ev === "disconnected" ||
-    ev === "permission" ||
-    ev === "stopped" ||
-    ev === "tool_end"
-  ) {
+  if (ev === "tool_end" && msg.payload?.ok === true) {
+    lastRenderKey = "";
+    void refresh();
+    return;
+  }
+  if (ev === "permission" || ev === "stopped" || ev === "tool_end" || ev === "disconnected") {
     lastRenderKey = "";
     void refresh();
   }

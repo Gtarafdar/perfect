@@ -231,12 +231,14 @@ export class ExtensionBridge extends EventEmitter {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (!/disconnected|not connected/i.test(msg)) throw e;
-      const back = await this.waitUntilConnected(10000);
+      const back = await this.waitUntilConnected(20000);
       if (!back) {
         throw new Error(
           `${msg} — wait for Linked, then retry the same tool (same tabId/ref).`,
         );
       }
+      // Brief settle after SW wake
+      await new Promise((r) => setTimeout(r, 400));
       return this.callToolOnce(tool, args, timeoutMs);
     }
   }

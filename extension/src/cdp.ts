@@ -1,3 +1,5 @@
+import { evaluateExpression, runInPage } from "./page.js";
+
 const attached = new Set<number>();
 const lastMouse = new Map<number, { x: number; y: number }>();
 
@@ -8,6 +10,12 @@ let cursorSink: CursorSink | null = null;
 /** Optional hook so tools can drive the on-page cursor overlay. */
 export function setCursorSink(sink: CursorSink | null): void {
   cursorSink = sink;
+}
+
+function isExtFrameConflict(e: unknown): boolean {
+  return /chrome-extension:\/\/ URL of different extension/i.test(
+    e instanceof Error ? e.message : String(e),
+  );
 }
 
 export async function attach(tabId: number): Promise<void> {
@@ -98,7 +106,38 @@ function notifyCursor(tabId: number, x: number, y: number, visible: boolean): vo
 const lastCursorNotify = new Map<number, number>();
 
 /**
- * Smooth human-like mouse move (cubic bezier + jitter), then update overlay.
+ * Move only the green overlay (no CDP Input). Animation runs in the content
+ * script (one message) so the SW isn't flooded / killed mid-fill.
+ */
+export async function moveCursorOverlay(
+  tabId: number,
+  x: number,
+  y: number,
+  opts?: { steps?: number },
+): Promise<void> {
+  const from = lastMouse.get(tabId) ?? { x: x - 80, y: y - 60 };
+  const dist = Math.hypot(x - from.x, y - from.y);
+  const durationMs = Math.max(140, Math.min(400, 160 + dist * 0.2));
+  try {
+    await chrome.tabs.sendMessage(tabId, {
+      type: "perfect_cursor_animate",
+      x,
+      y,
+      fromX: from.x,
+      fromY: from.y,
+      durationMs,
+    });
+  } catch {
+    // Content script missing — fall back to instant place via sink
+    lastCursorNotify.delete(tabId);
+    notifyCursor(tabId, x, y, true);
+  }
+  lastMouse.set(tabId, { x, y });
+  void opts;
+}
+
+/**
+ * Prefer overlay-only mouse (silent). CDP Input only when explicitly needed later.
  */
 export async function moveMouse(
   tabId: number,
@@ -106,133 +145,208 @@ export async function moveMouse(
   y: number,
   opts?: { steps?: number },
 ): Promise<void> {
-  await attach(tabId);
-  const from = lastMouse.get(tabId) ?? { x: x - 80, y: y - 60 };
-  const dist = Math.hypot(x - from.x, y - from.y);
-  const steps = opts?.steps ?? Math.max(4, Math.min(10, Math.round(dist / 45)));
-
-  const cp1 = {
-    x: from.x + (x - from.x) * 0.3 + (Math.random() - 0.5) * 20,
-    y: from.y + (y - from.y) * 0.15 + (Math.random() - 0.5) * 24,
-  };
-  const cp2 = {
-    x: from.x + (x - from.x) * 0.7 + (Math.random() - 0.5) * 20,
-    y: from.y + (y - from.y) * 0.85 + (Math.random() - 0.5) * 24,
-  };
-
-  for (let i = 1; i <= steps; i++) {
-    const t = i / steps;
-    const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-    const px =
-      (1 - e) ** 3 * from.x +
-      3 * (1 - e) ** 2 * e * cp1.x +
-      3 * (1 - e) * e ** 2 * cp2.x +
-      e ** 3 * x;
-    const py =
-      (1 - e) ** 3 * from.y +
-      3 * (1 - e) ** 2 * e * cp1.y +
-      3 * (1 - e) * e ** 2 * cp2.y +
-      e ** 3 * y;
-    await send(tabId, "Input.dispatchMouseEvent", {
-      type: "mouseMoved",
-      x: px,
-      y: py,
-    });
-    notifyCursor(tabId, px, py, true);
-    await delay(1 + Math.random() * 3);
-  }
-
-  await send(tabId, "Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
-  lastCursorNotify.delete(tabId);
-  notifyCursor(tabId, x, y, true);
-  lastMouse.set(tabId, { x, y });
+  await moveCursorOverlay(tabId, x, y, opts);
 }
 
 export async function clickAt(tabId: number, x: number, y: number): Promise<void> {
-  await moveMouse(tabId, x, y);
+  await moveCursorOverlay(tabId, x, y);
   await delay(20 + Math.random() * 30);
-  await send(tabId, "Input.dispatchMouseEvent", {
-    type: "mousePressed",
-    x,
-    y,
-    button: "left",
-    clickCount: 1,
-  });
-  await delay(12 + Math.random() * 18);
-  await send(tabId, "Input.dispatchMouseEvent", {
-    type: "mouseReleased",
-    x,
-    y,
-    button: "left",
-    clickCount: 1,
-  });
   lastMouse.set(tabId, { x, y });
   await delay(25 + Math.random() * 35);
 }
 
 /**
- * Type at a brisk human pace (not glacial).
+ * Type into a stamped field inside ONE page script (delays run in-page).
+ * Keeps the MV3 service worker alive — no per-keystroke round trips.
  */
-export async function typeHuman(tabId: number, text: string): Promise<void> {
-  await attach(tabId);
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i]!;
-    await send(tabId, "Input.insertText", { text: ch });
-    let ms = 8 + Math.random() * 14;
-    if (ch === " " || ch === "@" || ch === ".") ms += 10 + Math.random() * 18;
-    await delay(ms);
-  }
+export async function typeIntoRef(
+  tabId: number,
+  ref: string,
+  text: string,
+): Promise<boolean> {
+  const safeRef = ref.replace(/[^a-zA-Z0-9_-]/g, "");
+  return runInPage(
+    tabId,
+    async (r: string, value: string) => {
+      const el = document.querySelector(
+        `[data-perfect-ref="${r}"]`,
+      ) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+      if (!el) return false;
+      el.focus();
+      const tag = el.tagName;
+      if (tag === "SELECT") {
+        (el as HTMLSelectElement).value = value;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+        return (el as HTMLSelectElement).value === value;
+      }
+      const proto =
+        tag === "TEXTAREA"
+          ? window.HTMLTextAreaElement.prototype
+          : window.HTMLInputElement.prototype;
+      const desc = Object.getOwnPropertyDescriptor(proto, "value");
+      const setVal = (v: string) => {
+        if (desc?.set) desc.set.call(el, v);
+        else (el as HTMLInputElement).value = v;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      };
+      setVal("");
+      // Short values type out; longer type a prefix then commit (still looks human)
+      const typeLen = Math.min(value.length, 24);
+      for (let i = 0; i < typeLen; i++) {
+        setVal(value.slice(0, i + 1));
+        await new Promise((res) => setTimeout(res, 10 + Math.random() * 16));
+      }
+      if (typeLen < value.length) setVal(value);
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      return String((el as HTMLInputElement).value ?? "") === value;
+    },
+    [safeRef, text],
+  );
 }
 
-/** @deprecated Prefer typeHuman for visible fills */
+/**
+ * Type into the focused field in ONE page script (no per-key SW round trips).
+ */
+export async function typeHuman(tabId: number, text: string): Promise<void> {
+  await runInPage(
+    tabId,
+    async (value: string) => {
+      const el = document.activeElement as HTMLInputElement | HTMLTextAreaElement | null;
+      if (!el || !("value" in el)) return false;
+      const proto =
+        el.tagName === "TEXTAREA"
+          ? window.HTMLTextAreaElement.prototype
+          : window.HTMLInputElement.prototype;
+      const desc = Object.getOwnPropertyDescriptor(proto, "value");
+      const setVal = (v: string) => {
+        if (desc?.set) desc.set.call(el, v);
+        else el.value = v;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      };
+      const start = String(el.value || "");
+      const typeLen = Math.min(value.length, 24);
+      for (let i = 0; i < typeLen; i++) {
+        setVal(start + value.slice(0, i + 1));
+        await new Promise((res) => setTimeout(res, 10 + Math.random() * 16));
+      }
+      setVal(start + value);
+      return true;
+    },
+    [text],
+  );
+}
+
+/** @deprecated Prefer typeIntoRef / typeHuman */
 export async function insertText(tabId: number, text: string): Promise<void> {
   await typeHuman(tabId, text);
 }
 
+/** Soft key handling via page script — no debugger attach. */
 export async function pressKey(tabId: number, key: string): Promise<void> {
-  await attach(tabId);
-  const parts = key.split("+").map((p) => p.trim());
-  const main = parts[parts.length - 1]!;
-  let modifiers = 0;
-  for (const p of parts.slice(0, -1)) {
-    const l = p.toLowerCase();
-    if (l === "alt") modifiers |= 1;
-    if (l === "ctrl" || l === "control") modifiers |= 2;
-    if (l === "meta" || l === "cmd" || l === "command") modifiers |= 4;
-    if (l === "shift") modifiers |= 8;
+  const lower = key.toLowerCase();
+  if (lower === "meta+a" || lower === "ctrl+a") {
+    await evaluateExpression(
+      tabId,
+      `(() => { const el = document.activeElement; if (el && 'select' in el) try { el.select(); } catch (_) {} return true; })()`,
+    );
+    return;
   }
-  const keyInfo =
-    KEY_MAP[main] ?? {
-      key: main,
-      code: `Key${main.toUpperCase()}`,
-      windowsVirtualKeyCode: main.toUpperCase().charCodeAt(0),
-    };
-  await send(tabId, "Input.dispatchKeyEvent", {
-    type: "keyDown",
-    modifiers,
-    ...keyInfo,
-  });
-  await delay(30 + Math.random() * 40);
-  await send(tabId, "Input.dispatchKeyEvent", {
-    type: "keyUp",
-    modifiers,
-    ...keyInfo,
-  });
+  if (lower === "backspace") {
+    await evaluateExpression(
+      tabId,
+      `(() => {
+        const el = document.activeElement;
+        if (!el || !('value' in el)) return false;
+        const proto = el.tagName === 'TEXTAREA'
+          ? window.HTMLTextAreaElement.prototype
+          : window.HTMLInputElement.prototype;
+        const desc = Object.getOwnPropertyDescriptor(proto, 'value');
+        if (desc && desc.set) desc.set.call(el, ''); else el.value = '';
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        return true;
+      })()`,
+    );
+    return;
+  }
+  if (lower === "enter") {
+    await evaluateExpression(
+      tabId,
+      `(() => {
+        const el = document.activeElement;
+        if (!el) return false;
+        el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        if (el.form) el.form.requestSubmit?.();
+        return true;
+      })()`,
+    );
+    return;
+  }
+  // Other keys: try CDP once; ignore extension-frame conflicts
+  try {
+    await attach(tabId);
+    const parts = key.split("+").map((p) => p.trim());
+    const main = parts[parts.length - 1]!;
+    let modifiers = 0;
+    for (const p of parts.slice(0, -1)) {
+      const l = p.toLowerCase();
+      if (l === "alt") modifiers |= 1;
+      if (l === "ctrl" || l === "control") modifiers |= 2;
+      if (l === "meta" || l === "cmd" || l === "command") modifiers |= 4;
+      if (l === "shift") modifiers |= 8;
+    }
+    const keyInfo =
+      KEY_MAP[main] ?? {
+        key: main,
+        code: `Key${main.toUpperCase()}`,
+        windowsVirtualKeyCode: main.toUpperCase().charCodeAt(0),
+      };
+    await send(tabId, "Input.dispatchKeyEvent", {
+      type: "keyDown",
+      modifiers,
+      ...keyInfo,
+    });
+    await delay(30 + Math.random() * 40);
+    await send(tabId, "Input.dispatchKeyEvent", {
+      type: "keyUp",
+      modifiers,
+      ...keyInfo,
+    });
+  } catch (e) {
+    if (!isExtFrameConflict(e)) throw e;
+  }
 }
 
+/**
+ * Prefer scripting (silent, no debugger banner / extension-frame conflicts).
+ * Fall back to CDP only if scripting is blocked (rare chrome:// pages).
+ */
 export async function evaluate<T>(tabId: number, expression: string): Promise<T> {
-  await attach(tabId);
-  const result = await send<{
-    result: { value?: T; exceptionDetails?: unknown };
-  }>(tabId, "Runtime.evaluate", {
-    expression,
-    returnByValue: true,
-    awaitPromise: true,
-  });
-  if (result.result.exceptionDetails) {
-    throw new Error("Evaluate failed");
+  try {
+    return await evaluateExpression<T>(tabId, expression);
+  } catch (scriptErr) {
+    try {
+      await attach(tabId);
+      const result = await send<{
+        result: { value?: T; exceptionDetails?: unknown };
+      }>(tabId, "Runtime.evaluate", {
+        expression,
+        returnByValue: true,
+        awaitPromise: true,
+      });
+      if (result.result.exceptionDetails) {
+        throw new Error("Evaluate failed");
+      }
+      return result.result.value as T;
+    } catch (cdpErr) {
+      if (isExtFrameConflict(cdpErr)) {
+        throw new Error(
+          "Page evaluate blocked by another extension’s frames. Disable conflicting extensions on this tab, or retry.",
+        );
+      }
+      throw scriptErr instanceof Error ? scriptErr : cdpErr;
+    }
   }
-  return result.result.value as T;
 }
 
 export async function scrollWheel(

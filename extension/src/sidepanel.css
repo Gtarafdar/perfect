@@ -103,19 +103,19 @@ h1 {
 
 .status-card.linked .pulse {
   background: var(--lime);
-  /* Soft pulse — big box-shadow looked like the whole panel flashing */
-  animation: pulse 2.4s ease infinite;
+  /* Soft live pulse on the dot only — not the whole card */
+  animation: linkedPulse 2s ease-in-out infinite;
 }
 
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(184, 255, 60, 0.35);
-  }
-  70% {
-    box-shadow: 0 0 0 6px rgba(184, 255, 60, 0);
-  }
+@keyframes linkedPulse {
+  0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(184, 255, 60, 0);
+    box-shadow: 0 0 0 0 rgba(184, 255, 60, 0.45);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(184, 255, 60, 0);
+    transform: scale(1.05);
   }
 }
 

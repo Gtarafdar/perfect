@@ -240,14 +240,15 @@ export async function highlightRef(tabId: number, ref: string): Promise<void> {
   );
 }
 
-/** Move cursor, click the live element, ensure it is focused. */
+/** Move cursor overlay, DOM-click the live element, ensure focused (no debugger required). */
 export async function focusRef(tabId: number, ref: string): Promise<boolean> {
   const box = await resolveTarget(tabId, ref);
   if (!box) return false;
   await highlightRef(tabId, ref);
-  await cdp.delay(30 + Math.random() * 30);
-  await cdp.clickAt(tabId, box.x, box.y);
-  await cdp.delay(40 + Math.random() * 40);
+  await cdp.delay(10);
+  // Overlay-only first — silent, no yellow banner / extension-frame errors
+  await cdp.moveCursorOverlay(tabId, box.x, box.y);
+  await cdp.delay(15);
 
   const sel = JSON.stringify(`[data-perfect-ref="${cssRef(ref)}"]`);
   let focused = await cdp.evaluate<boolean>(
@@ -255,7 +256,7 @@ export async function focusRef(tabId: number, ref: string): Promise<boolean> {
     `(() => {
       const el = document.querySelector(${sel});
       if (!el) return false;
-      if (document.activeElement === el) return true;
+      try { el.click(); } catch (_) {}
       try { el.focus({ preventScroll: true }); } catch (_) { el.focus(); }
       return document.activeElement === el || el.contains(document.activeElement);
     })()`,
@@ -264,13 +265,16 @@ export async function focusRef(tabId: number, ref: string): Promise<boolean> {
   if (!focused) {
     const retry = await resolveTarget(tabId, ref);
     if (retry) {
-      await cdp.clickAt(tabId, retry.x, retry.y);
-      await cdp.delay(80);
+      await cdp.moveCursorOverlay(tabId, retry.x, retry.y);
+      await cdp.delay(40);
       focused = await cdp.evaluate<boolean>(
         tabId,
         `(() => {
           const el = document.querySelector(${sel});
-          return !!el && (document.activeElement === el || el.contains(document.activeElement));
+          if (!el) return false;
+          try { el.click(); } catch (_) {}
+          try { el.focus({ preventScroll: true }); } catch (_) { el.focus(); }
+          return document.activeElement === el || el.contains(document.activeElement);
         })()`,
       );
     }
