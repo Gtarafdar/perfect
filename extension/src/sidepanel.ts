@@ -70,10 +70,19 @@ function render(state: State): void {
 
   modeSelect.value = state.settings.mode || "manual";
   ticker.innerHTML = "";
-  for (const row of state.settings.actionLog ?? []) {
+  const rows = state.settings.actionLog ?? [];
+  if (rows.length === 0) {
     const li = document.createElement("li");
-    li.textContent = `${row.tool} · ${row.summary}`;
+    li.className = "ticker-empty";
+    li.textContent = state.linked ? "Ready — errors stay here; successes clear" : "Waiting…";
     ticker.appendChild(li);
+  } else {
+    for (const row of rows) {
+      const li = document.createElement("li");
+      li.className = row.summary.startsWith("✗") ? "err" : "";
+      li.textContent = `${row.tool} · ${row.summary}`;
+      ticker.appendChild(li);
+    }
   }
   if (state.pendingPermission) {
     permissionBox.hidden = false;

@@ -20,6 +20,7 @@ export class ExtensionBridge extends EventEmitter {
     }
   >();
   private connected = false;
+  private pingTimer: NodeJS.Timeout | null = null;
 
   constructor(private cfg: PerfectConfig) {
     super();
@@ -43,6 +44,7 @@ export class ExtensionBridge extends EventEmitter {
         if (this.ext === ws) {
           this.ext = null;
           this.connected = false;
+          this.stopPing();
           this.emit("disconnected");
           for (const [id, p] of this.pending) {
             clearTimeout(p.timer);
@@ -72,6 +74,7 @@ export class ExtensionBridge extends EventEmitter {
   }
 
   async stop(): Promise<void> {
+    this.stopPing();
     for (const [, p] of this.pending) {
       clearTimeout(p.timer);
       p.reject(new Error("Bridge stopped"));
@@ -88,6 +91,45 @@ export class ExtensionBridge extends EventEmitter {
 
   isConnected(): boolean {
     return this.connected && !!this.ext && this.ext.readyState === WebSocket.OPEN;
+  }
+
+  /** Wait until extension is Linked (after a drop), or timeout. */
+  waitUntilConnected(timeoutMs = 8000): Promise<boolean> {
+    if (this.isConnected()) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      const onConn = () => {
+        cleanup();
+        resolve(true);
+      };
+      const timer = setTimeout(() => {
+        cleanup();
+        resolve(false);
+      }, timeoutMs);
+      const cleanup = () => {
+        clearTimeout(timer);
+        this.off("connected", onConn);
+      };
+      this.on("connected", onConn);
+    });
+  }
+
+  private startPing(): void {
+    this.stopPing();
+    this.pingTimer = setInterval(() => {
+      if (!this.isConnected() || !this.ext) return;
+      try {
+        this.send(this.ext, { type: "ping", t: Date.now() });
+      } catch {
+        /* */
+      }
+    }, 12000);
+  }
+
+  private stopPing(): void {
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
+    }
   }
 
   private send(ws: WebSocket, msg: BridgeMessage): void {
@@ -120,11 +162,19 @@ export class ExtensionBridge extends EventEmitter {
       this.ext = ws;
       this.connected = true;
       this.send(ws, { type: "hello_ack", ok: true });
+      this.startPing();
       this.emit("connected");
       return;
     }
 
     if (ws !== this.ext) return;
+
+    if (msg.type === "pong") return;
+
+    if (msg.type === "ping") {
+      this.send(ws, { type: "pong", t: msg.t });
+      return;
+    }
 
     if (msg.type === "tool_response") {
       const p = this.pending.get(msg.id);
@@ -141,10 +191,10 @@ export class ExtensionBridge extends EventEmitter {
     }
   }
 
-  callTool(
+  private callToolOnce(
     tool: ToolName,
     args: Record<string, unknown>,
-    timeoutMs = 60000,
+    timeoutMs: number,
   ): Promise<ToolResponse> {
     if (!this.isConnected() || !this.ext) {
       return Promise.reject(
@@ -165,5 +215,29 @@ export class ExtensionBridge extends EventEmitter {
       this.pending.set(id, { resolve, reject, timer });
       this.send(this.ext!, req);
     });
+  }
+
+  /**
+   * Call a tool; if the extension drops mid-call, wait for Linked and retry once
+   * with the same args (same session resume).
+   */
+  async callTool(
+    tool: ToolName,
+    args: Record<string, unknown>,
+    timeoutMs = 60000,
+  ): Promise<ToolResponse> {
+    try {
+      return await this.callToolOnce(tool, args, timeoutMs);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!/disconnected|not connected/i.test(msg)) throw e;
+      const back = await this.waitUntilConnected(10000);
+      if (!back) {
+        throw new Error(
+          `${msg} — wait for Linked, then retry the same tool (same tabId/ref).`,
+        );
+      }
+      return this.callToolOnce(tool, args, timeoutMs);
+    }
   }
 }

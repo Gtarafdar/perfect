@@ -265,6 +265,24 @@ select {
   color: #c5ccba;
 }
 
+.ticker li.err {
+  color: #ffb4a8;
+}
+
+.ticker li.err::before {
+  content: "✗ ";
+  color: #ff6b5a;
+}
+
+.ticker li.ticker-empty {
+  color: var(--muted);
+  border-bottom: 0;
+}
+
+.ticker li.ticker-empty::before {
+  content: "";
+}
+
 .ticker li::before {
   content: "→ ";
   color: var(--lime);

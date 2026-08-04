@@ -65,15 +65,32 @@ export function getPendingPermission() {
   return pendingPermission?.prompt ?? null;
 }
 
-async function pushLog(tool: string, summary: string): Promise<void> {
+async function pushLog(tool: string, summary: string, ok = true): Promise<void> {
+  if (ok) {
+    // Success: wipe HUD history so it doesn't grow forever
+    await saveSettings({ actionLog: [] });
+    void chrome.runtime
+      .sendMessage({
+        type: "perfect_event",
+        event: "tool_end",
+        payload: { tool, summary, ok: true },
+      })
+      .catch(() => {});
+    return;
+  }
   const s = await loadSettings();
-  const actionLog = [{ ts: Date.now(), tool, summary }, ...s.actionLog].slice(0, 40);
+  const actionLog = [
+    { ts: Date.now(), tool, summary: `✗ ${summary}` },
+    ...s.actionLog,
+  ].slice(0, 12);
   await saveSettings({ actionLog });
-  void chrome.runtime.sendMessage({
-    type: "perfect_event",
-    event: "tool_end",
-    payload: { tool, summary },
-  }).catch(() => {});
+  void chrome.runtime
+    .sendMessage({
+      type: "perfect_event",
+      event: "tool_end",
+      payload: { tool, summary, ok: false },
+    })
+    .catch(() => {});
 }
 
 async function audit(
@@ -281,7 +298,29 @@ export async function runTool(
         }
         await pushLog(tool, `snapshot ${snap.nodes.length} nodes`);
         await showHud(tabId, true);
-        return { ok: true, result: snap, decision };
+        // Compact payload → lower Cursor token use
+        const fields = snap.nodes
+          .filter((n) => n.editable)
+          .map((n) =>
+            n.value
+              ? `${n.ref}\t${n.name}\t=${n.value}`
+              : `${n.ref}\t${n.name}`,
+          );
+        const actions = snap.nodes
+          .filter((n) => !n.editable && n.clickable)
+          .slice(0, 40)
+          .map((n) => `${n.ref}\t${n.name}`);
+        return {
+          ok: true,
+          result: {
+            tabId: snap.tabId,
+            url: snap.url,
+            fields,
+            actions,
+            inj: snap.injectionFlags,
+          },
+          decision,
+        };
       }
       case "browser_click": {
         const tabId = await tabs.resolveTabId(args.tabId as number | undefined);
@@ -470,7 +509,9 @@ export async function runTool(
         return { ok: false, error: `Unknown tool: ${tool}` };
     }
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    const err = e instanceof Error ? e.message : String(e);
+    await pushLog(tool, err, false);
+    return { ok: false, error: err };
   } finally {
     // Detach after each tool to reduce debugger banner time
     if (tool !== "browser_status" && tool !== "browser_stop") {

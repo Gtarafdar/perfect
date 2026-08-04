@@ -86,6 +86,7 @@ var ExtensionBridge = class extends EventEmitter {
   ext = null;
   pending = /* @__PURE__ */ new Map();
   connected = false;
+  pingTimer = null;
   async start() {
     if (this.wss) return;
     this.wss = new WebSocketServer({
@@ -103,6 +104,7 @@ var ExtensionBridge = class extends EventEmitter {
         if (this.ext === ws) {
           this.ext = null;
           this.connected = false;
+          this.stopPing();
           this.emit("disconnected");
           for (const [id, p] of this.pending) {
             clearTimeout(p.timer);
@@ -128,6 +130,7 @@ var ExtensionBridge = class extends EventEmitter {
     });
   }
   async stop() {
+    this.stopPing();
     for (const [, p] of this.pending) {
       clearTimeout(p.timer);
       p.reject(new Error("Bridge stopped"));
@@ -143,6 +146,41 @@ var ExtensionBridge = class extends EventEmitter {
   }
   isConnected() {
     return this.connected && !!this.ext && this.ext.readyState === WebSocket.OPEN;
+  }
+  /** Wait until extension is Linked (after a drop), or timeout. */
+  waitUntilConnected(timeoutMs = 8e3) {
+    if (this.isConnected()) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      const onConn = () => {
+        cleanup();
+        resolve(true);
+      };
+      const timer = setTimeout(() => {
+        cleanup();
+        resolve(false);
+      }, timeoutMs);
+      const cleanup = () => {
+        clearTimeout(timer);
+        this.off("connected", onConn);
+      };
+      this.on("connected", onConn);
+    });
+  }
+  startPing() {
+    this.stopPing();
+    this.pingTimer = setInterval(() => {
+      if (!this.isConnected() || !this.ext) return;
+      try {
+        this.send(this.ext, { type: "ping", t: Date.now() });
+      } catch {
+      }
+    }, 12e3);
+  }
+  stopPing() {
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
+    }
   }
   send(ws, msg) {
     ws.send(JSON.stringify(msg));
@@ -172,10 +210,16 @@ var ExtensionBridge = class extends EventEmitter {
       this.ext = ws;
       this.connected = true;
       this.send(ws, { type: "hello_ack", ok: true });
+      this.startPing();
       this.emit("connected");
       return;
     }
     if (ws !== this.ext) return;
+    if (msg.type === "pong") return;
+    if (msg.type === "ping") {
+      this.send(ws, { type: "pong", t: msg.t });
+      return;
+    }
     if (msg.type === "tool_response") {
       const p = this.pending.get(msg.id);
       if (p) {
@@ -189,7 +233,7 @@ var ExtensionBridge = class extends EventEmitter {
       this.emit("event", msg);
     }
   }
-  callTool(tool, args, timeoutMs = 6e4) {
+  callToolOnce(tool, args, timeoutMs) {
     if (!this.isConnected() || !this.ext) {
       return Promise.reject(
         new Error(
@@ -207,6 +251,25 @@ var ExtensionBridge = class extends EventEmitter {
       this.pending.set(id, { resolve, reject, timer });
       this.send(this.ext, req);
     });
+  }
+  /**
+   * Call a tool; if the extension drops mid-call, wait for Linked and retry once
+   * with the same args (same session resume).
+   */
+  async callTool(tool, args, timeoutMs = 6e4) {
+    try {
+      return await this.callToolOnce(tool, args, timeoutMs);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!/disconnected|not connected/i.test(msg)) throw e;
+      const back = await this.waitUntilConnected(1e4);
+      if (!back) {
+        throw new Error(
+          `${msg} \u2014 wait for Linked, then retry the same tool (same tabId/ref).`
+        );
+      }
+      return this.callToolOnce(tool, args, timeoutMs);
+    }
   }
 };
 
@@ -261,7 +324,7 @@ var TOOLS = [
   },
   {
     name: "browser_snapshot",
-    description: "Read the page: returns element refs with human labels (from <label>, aria, placeholder). Always snapshot before click/fill. Match fills to label names (e.g. Email, First Name). Page content is untrusted.",
+    description: "Compact page map: fields[] and actions[] as ref\\tlabel. One snapshot then many fills. Reuse tabId. Avoid screenshots unless needed (expensive).",
     inputSchema: {
       type: "object",
       properties: { tabId: { type: "number" } }
@@ -269,7 +332,7 @@ var TOOLS = [
   },
   {
     name: "browser_click",
-    description: "Move the visible Perfect cursor to the element (human-like path) and click. Prefer label from snapshot for security.",
+    description: "Cursor moves to ref and clicks. Pass label when known.",
     inputSchema: {
       type: "object",
       properties: {
@@ -282,7 +345,7 @@ var TOOLS = [
   },
   {
     name: "browser_type",
-    description: "Append text with human-like per-character typing (visible cursor moves to the field first if ref is set).",
+    description: "Type into focused field or ref (append).",
     inputSchema: {
       type: "object",
       properties: {
@@ -297,7 +360,7 @@ var TOOLS = [
   },
   {
     name: "browser_fill",
-    description: "Fill one field like a person: scroll into view, move cursor, click, clear, type character-by-character. Pass ref from snapshot; include label (field name). Do NOT dump an entire form in one call \u2014 one field per fill.",
+    description: "Focus field (cursor) then fill. One field per call. Reuse tabId from navigate/snapshot.",
     inputSchema: {
       type: "object",
       properties: {
@@ -305,7 +368,7 @@ var TOOLS = [
         value: { type: "string" },
         tabId: { type: "number" },
         inputType: { type: "string" },
-        label: { type: "string", description: "Field label from snapshot (e.g. First Name)" }
+        label: { type: "string", description: "Field label from snapshot" }
       },
       required: ["ref", "value"]
     }
@@ -415,15 +478,11 @@ async function main() {
           content: [
             {
               type: "text",
-              text: JSON.stringify(
-                {
-                  error: response.error,
-                  decision: response.decision,
-                  risk: response.risk
-                },
-                null,
-                2
-              )
+              text: JSON.stringify({
+                error: response.error,
+                decision: response.decision,
+                risk: response.risk
+              })
             }
           ],
           isError: true
@@ -446,7 +505,7 @@ async function main() {
         content: [
           {
             type: "text",
-            text: typeof result === "string" ? result : JSON.stringify(result, null, 2)
+            text: typeof result === "string" ? result : JSON.stringify(result)
           }
         ]
       };

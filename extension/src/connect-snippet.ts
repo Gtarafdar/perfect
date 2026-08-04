@@ -118,7 +118,9 @@ ${json}
 3. If MCP logs show EADDRINUSE on 127.0.0.1:${port}: free that port (kill the stale Perfect/node listener on ${port}), then re-enable perfect. Do not change the port number.
 4. If install fails, report the error clearly. Prefer the GitHub package block above — do not ask me for a local server.js path unless I am developing from a git checkout.
 5. When Perfect tools are available, call browser_status. If it succeeds, tell me the panel should show Linked. If the panel still says Waiting, ask me to click Reconnect once in the Perfect side panel.
-6. Reply with a short confirmation when Linked is expected.
+6. Token thrift: reuse tabId; one snapshot then many fills; skip screenshots unless necessary; don't re-navigate the same URL.
+7. If a tool errors with "Extension disconnected": wait ~2s, call browser_status, then retry the SAME tool once (same tabId/ref) — do not restart the whole task.
+8. Reply with a short confirmation when Linked is expected.
 
 Start now.`;
 }

@@ -109,20 +109,19 @@ export async function moveMouse(
   await attach(tabId);
   const from = lastMouse.get(tabId) ?? { x: x - 80, y: y - 60 };
   const dist = Math.hypot(x - from.x, y - from.y);
-  const steps = opts?.steps ?? Math.max(8, Math.min(22, Math.round(dist / 28)));
+  const steps = opts?.steps ?? Math.max(4, Math.min(10, Math.round(dist / 45)));
 
   const cp1 = {
-    x: from.x + (x - from.x) * 0.25 + (Math.random() - 0.5) * 40,
-    y: from.y + (y - from.y) * 0.1 + (Math.random() - 0.5) * 50,
+    x: from.x + (x - from.x) * 0.3 + (Math.random() - 0.5) * 20,
+    y: from.y + (y - from.y) * 0.15 + (Math.random() - 0.5) * 24,
   };
   const cp2 = {
-    x: from.x + (x - from.x) * 0.75 + (Math.random() - 0.5) * 40,
-    y: from.y + (y - from.y) * 0.9 + (Math.random() - 0.5) * 50,
+    x: from.x + (x - from.x) * 0.7 + (Math.random() - 0.5) * 20,
+    y: from.y + (y - from.y) * 0.85 + (Math.random() - 0.5) * 24,
   };
 
   for (let i = 1; i <= steps; i++) {
     const t = i / steps;
-    // ease-in-out
     const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     const px =
       (1 - e) ** 3 * from.x +
@@ -134,15 +133,13 @@ export async function moveMouse(
       3 * (1 - e) ** 2 * e * cp1.y +
       3 * (1 - e) * e ** 2 * cp2.y +
       e ** 3 * y;
-    const jx = px + (Math.random() - 0.5) * 1.5;
-    const jy = py + (Math.random() - 0.5) * 1.5;
     await send(tabId, "Input.dispatchMouseEvent", {
       type: "mouseMoved",
-      x: jx,
-      y: jy,
+      x: px,
+      y: py,
     });
-    notifyCursor(tabId, jx, jy, true);
-    await delay(5 + Math.random() * 8);
+    notifyCursor(tabId, px, py, true);
+    await delay(1 + Math.random() * 3);
   }
 
   await send(tabId, "Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
@@ -153,7 +150,7 @@ export async function moveMouse(
 
 export async function clickAt(tabId: number, x: number, y: number): Promise<void> {
   await moveMouse(tabId, x, y);
-  await delay(50 + Math.random() * 70);
+  await delay(20 + Math.random() * 30);
   await send(tabId, "Input.dispatchMouseEvent", {
     type: "mousePressed",
     x,
@@ -161,7 +158,7 @@ export async function clickAt(tabId: number, x: number, y: number): Promise<void
     button: "left",
     clickCount: 1,
   });
-  await delay(25 + Math.random() * 35);
+  await delay(12 + Math.random() * 18);
   await send(tabId, "Input.dispatchMouseEvent", {
     type: "mouseReleased",
     x,
@@ -170,23 +167,19 @@ export async function clickAt(tabId: number, x: number, y: number): Promise<void
     clickCount: 1,
   });
   lastMouse.set(tabId, { x, y });
-  await delay(60 + Math.random() * 60);
+  await delay(25 + Math.random() * 35);
 }
 
 /**
- * Type like a person: per-character insert with variable delay.
- * Tuned to stay visible without sleeping the MV3 service worker.
+ * Type at a brisk human pace (not glacial).
  */
 export async function typeHuman(tabId: number, text: string): Promise<void> {
   await attach(tabId);
   for (let i = 0; i < text.length; i++) {
     const ch = text[i]!;
     await send(tabId, "Input.insertText", { text: ch });
-    let ms = 18 + Math.random() * 28;
-    if (ch === " " || ch === "@" || ch === "." || ch === ",") ms += 20 + Math.random() * 35;
-    if (i > 0 && i % (9 + Math.floor(Math.random() * 4)) === 0) {
-      ms += 60 + Math.random() * 80;
-    }
+    let ms = 8 + Math.random() * 14;
+    if (ch === " " || ch === "@" || ch === ".") ms += 10 + Math.random() * 18;
     await delay(ms);
   }
 }

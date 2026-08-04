@@ -18,7 +18,13 @@ function startKeepAlive(): void {
   // MV3 kills the SW during long fills; light work keeps it awake while Linked
   keepAliveTimer = setInterval(() => {
     void chrome.storage.session.set({ perfectHeartbeat: Date.now() }).catch(() => {});
-  }, 20000);
+    // Also poke the bridge so idle links stay warm
+    try {
+      ws?.send(JSON.stringify({ type: "ping", t: Date.now() }));
+    } catch {
+      /* */
+    }
+  }, 10000);
 }
 
 function stopKeepAlive(): void {
@@ -141,10 +147,16 @@ async function onMessage(raw: string): Promise<void> {
     id?: string;
     tool?: string;
     args?: Record<string, unknown>;
+    t?: number;
   };
   try {
     msg = JSON.parse(raw);
   } catch {
+    return;
+  }
+
+  if (msg.type === "ping") {
+    ws?.send(JSON.stringify({ type: "pong", t: (msg as { t?: number }).t ?? Date.now() }));
     return;
   }
 

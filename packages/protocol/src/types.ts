@@ -97,6 +97,16 @@ export interface EventMessage {
   payload?: Record<string, unknown>;
 }
 
+export interface BridgePing {
+  type: "ping";
+  t: number;
+}
+
+export interface BridgePong {
+  type: "pong";
+  t: number;
+}
+
 export type BridgeMessage =
   | BridgeHello
   | BridgeHelloAck
@@ -104,7 +114,9 @@ export type BridgeMessage =
   | ToolResponse
   | PermissionPrompt
   | PermissionReply
-  | EventMessage;
+  | EventMessage
+  | BridgePing
+  | BridgePong;
 
 export interface TabInfo {
   id: number;

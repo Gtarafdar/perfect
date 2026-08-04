@@ -129,7 +129,20 @@ export async function snapshot(tabId: number): Promise<{
   );
 
   refMap = new Map();
-  const nodes: SnapshotNode[] = raw.nodes.map((n) => {
+  // Prefer form-relevant nodes for lower token cost; keep named buttons/links
+  const useful = raw.nodes.filter((n) => {
+    if (n.editable) return true;
+    if (!n.name || n.name.length < 2) return false;
+    if (/^(PERSONAL|BUSINESS|PLANS|SECURITY|DOWNLOAD|Support|Log In|Buy Now|Premium|Family|Pricing|Blog|Reviews|English|Privacy|Stop|·)$/i.test(n.name)) {
+      return false;
+    }
+    if (/RoboForm|vs\.|Get RoboForm|Help Center|Contact|Ticket|Manual|Tutorials|Bug Bounty|About|Press|Partner|Affiliate|Facebook|YouTube|Twitter|LinkedIn|Windows|Mac|iOS|Android|Browsers|Password Generator|Passphrase|Have I Been/i.test(n.name)) {
+      return false;
+    }
+    return n.clickable;
+  });
+
+  const nodes: SnapshotNode[] = useful.map((n) => {
     refMap.set(n.ref, {
       x: n.x,
       y: n.y,
@@ -146,6 +159,19 @@ export async function snapshot(tabId: number): Promise<{
       editable: n.editable,
     };
   });
+
+  // Also keep full refMap for all stamped nodes so fill by ref still works
+  for (const n of raw.nodes) {
+    if (!refMap.has(n.ref)) {
+      refMap.set(n.ref, {
+        x: n.x,
+        y: n.y,
+        name: n.name,
+        role: n.role,
+        editable: n.editable,
+      });
+    }
+  }
 
   return {
     url: tab.url ?? "",
@@ -219,9 +245,9 @@ export async function focusRef(tabId: number, ref: string): Promise<boolean> {
   const box = await resolveTarget(tabId, ref);
   if (!box) return false;
   await highlightRef(tabId, ref);
-  await cdp.delay(80 + Math.random() * 60);
+  await cdp.delay(30 + Math.random() * 30);
   await cdp.clickAt(tabId, box.x, box.y);
-  await cdp.delay(100 + Math.random() * 80);
+  await cdp.delay(40 + Math.random() * 40);
 
   const sel = JSON.stringify(`[data-perfect-ref="${cssRef(ref)}"]`);
   let focused = await cdp.evaluate<boolean>(
