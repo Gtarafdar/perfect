@@ -8,15 +8,15 @@
     "extension"
   ],
   "scripts": {
-    "build": "npm run build -w @perfect/protocol && npm run build -w @perfect/mcp && npm run build -w @perfect/extension",
-    "typecheck": "npm run typecheck -w @perfect/protocol && npm run typecheck -w @perfect/mcp && npm run typecheck -w @perfect/extension",
+    "build": "npm run build -w @perfect/protocol && npm run build -w perfect-mcp && npm run build -w @perfect/extension",
+    "typecheck": "npm run typecheck -w @perfect/protocol && npm run typecheck -w perfect-mcp && npm run typecheck -w @perfect/extension",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:watch": "vitest",
     "lint": "tsc -p tsconfig.json --noEmit",
     "pack:extension": "npm run build -w @perfect/extension && node scripts/pack-extension.mjs",
-    "demo": "npm run demo -w @perfect/mcp"
+    "demo": "npm run demo -w perfect-mcp"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",

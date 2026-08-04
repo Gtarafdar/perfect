@@ -339,3 +339,20 @@ select {
 .advanced input[type="password"] {
   margin-bottom: 8px;
 }
+
+.lead {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #d5dacd;
+}
+
+.lead strong {
+  color: var(--text);
+}
+
+#copyPrompt.btn.block {
+  margin-top: 0;
+  padding: 14px 16px;
+  font-size: 14px;
+}

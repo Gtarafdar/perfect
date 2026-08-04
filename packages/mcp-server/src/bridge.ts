@@ -55,7 +55,19 @@ export class ExtensionBridge extends EventEmitter {
 
     await new Promise<void>((resolve, reject) => {
       this.wss!.once("listening", () => resolve());
-      this.wss!.once("error", reject);
+      this.wss!.once("error", (err: NodeJS.ErrnoException) => {
+        if (err.code === "EADDRINUSE") {
+          reject(
+            new Error(
+              `Perfect bridge port ${this.cfg.wsPort} is already in use (EADDRINUSE). ` +
+                `Free it (quit the other Perfect MCP / kill the process on 127.0.0.1:${this.cfg.wsPort}) ` +
+                `then re-enable the perfect MCP in Cursor. Do not change PERFECT_WS_PORT unless you also update the Chrome extension.`,
+            ),
+          );
+          return;
+        }
+        reject(err);
+      });
     });
   }
 

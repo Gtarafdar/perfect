@@ -69,7 +69,7 @@ describe("connect-snippet builders", () => {
     const json = JSON.stringify(entry);
     expect(entry).toMatchObject({
       command: "npx",
-      args: ["-y", "@perfect/mcp"],
+      args: ["-y", "perfect-mcp"],
       env: { PERFECT_TOKEN: token, PERFECT_WS_PORT: "17321" },
     });
     expect(JSON.stringify(entry.args)).not.toContain(token);
@@ -88,10 +88,15 @@ describe("connect-snippet builders", () => {
     expect(parsed.mcpServers.perfect.env.PERFECT_TOKEN).toBe(token);
   });
 
-  it("chat prompt merges and does not push Skip", () => {
+  it("operator prompt is merge-safe and guides Linked", () => {
     const prompt = buildChatPrompt({ token, wsPort: 17321, mode: "npx" });
     expect(prompt.toLowerCase()).toContain("merge");
+    expect(prompt).toMatch(/do not (replace|delete)/i);
     expect(prompt).toContain("mcpServers");
+    expect(prompt).toContain("perfect-mcp");
+    expect(prompt).toContain("EADDRINUSE");
+    expect(prompt).toContain("browser_status");
+    expect(prompt).toContain("Linked");
     expect(prompt).toContain(token);
     expect(prompt.toLowerCase()).not.toMatch(/enable skip|set.*skip mode/);
     expect((prompt.match(new RegExp(token, "g")) ?? []).length).toBe(1);

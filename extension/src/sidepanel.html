@@ -21,33 +21,18 @@
           <span class="pulse" id="pulse"></span>
           <div>
             <div class="status-label" id="statusLabel">Waiting for Cursor MCP</div>
-            <div class="status-sub" id="statusSub">Copy connect config into Cursor — about 30 seconds</div>
+            <div class="status-sub" id="statusSub">Paste the setup prompt in Cursor — I’ll handle the rest</div>
           </div>
         </div>
       </section>
 
       <section class="block setup" id="setupBox">
-        <h2>Connect Cursor</h2>
-        <ol class="steps">
-          <li>
-            <strong>Copy connect for Cursor</strong> (includes your bridge token in MCP env — generated here automatically).
-            <div class="row wrap" style="margin-top: 8px">
-              <button type="button" class="btn primary sm" id="copyConnect">Copy connect for Cursor</button>
-              <button type="button" class="btn sm" id="copyPrompt">Copy chat prompt</button>
-            </div>
-          </li>
-          <li>
-            Paste into <code>~/.cursor/mcp.json</code> (merge under <code>mcpServers</code>),
-            <em>or</em> paste the chat prompt in Cursor and let it merge for you.
-          </li>
-          <li>
-            Enable the <strong>perfect</strong> MCP in Cursor Settings → MCP. This panel becomes
-            <strong>Linked to Cursor</strong>.
-          </li>
-        </ol>
-        <p class="hint">
-          Token stays local. Anyone with your mcp.json can drive this bridge — same class of risk as a local API key.
+        <h2>Connect in one paste</h2>
+        <p class="lead">
+          Token is ready. Copy the setup prompt, paste it into a Cursor chat, and let Cursor merge your MCP config and guide you until this panel says <strong>Linked</strong>.
         </p>
+        <button type="button" class="btn primary block" id="copyPrompt">Copy setup prompt for Cursor</button>
+        <p class="hint" id="copyHint">No Terminal. No hand-editing JSON.</p>
       </section>
 
       <section class="block">
@@ -83,13 +68,15 @@
         <button type="button" class="btn block" id="reconnect">Reconnect</button>
         <details class="advanced">
           <summary>Advanced</summary>
-          <p class="hint">Bridge token is hidden. Regenerating disconnects Cursor until you copy connect again.</p>
+          <p class="hint">Regenerating disconnects Cursor until you copy the setup prompt again.</p>
           <div class="row">
             <input id="token" type="password" readonly autocomplete="off" aria-label="Bridge token (hidden)" />
           </div>
           <button type="button" class="btn block danger" id="regenToken">Regenerate token</button>
-          <label class="field-label" for="devServerPath" style="margin-top:10px">Local server.js path (optional, for git builds)</label>
+          <button type="button" class="btn block ghost" id="copyConnect">Copy raw MCP JSON</button>
+          <label class="field-label" for="devServerPath" style="margin-top:10px">Local server.js (git fallback only)</label>
           <input id="devServerPath" type="text" placeholder="/path/to/packages/mcp-server/dist/server.js" autocomplete="off" />
+          <p class="hint">Leave empty to use <code>npx -y perfect-mcp</code> (published package).</p>
         </details>
       </section>
 

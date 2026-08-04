@@ -27,6 +27,7 @@ const permissionBox = document.getElementById("permissionBox")!;
 const permSummary = document.getElementById("permSummary")!;
 const permMeta = document.getElementById("permMeta")!;
 const setupBox = document.getElementById("setupBox")!;
+const copyHint = document.getElementById("copyHint")!;
 const devServerPath = document.getElementById("devServerPath") as HTMLInputElement;
 
 let cached: State | null = null;
@@ -61,7 +62,7 @@ function render(state: State): void {
   statusLabel.textContent = state.linked ? "Linked to Cursor" : "Waiting for Cursor MCP";
   statusSub.textContent = state.linked
     ? "Bridge live · actions appear below"
-    : "Copy connect → enable Perfect MCP in Cursor";
+    : "Paste the setup prompt in Cursor — I’ll handle the rest";
 
   setupBox.hidden = state.linked;
   tokenInput.value = state.settings.token ? "••••••••••••••••" : "";
@@ -82,36 +83,40 @@ function render(state: State): void {
   }
 }
 
-document.getElementById("copyConnect")!.addEventListener("click", async () => {
+async function ensureState(): Promise<State | null> {
   if (!cached?.settings.token) await refresh();
   if (!cached?.settings.token) {
     statusSub.textContent = "Token not ready — reopen the panel";
-    return;
+    return null;
   }
-  const text = buildConnectJson(snippetOpts(cached));
-  await navigator.clipboard.writeText(text);
-  statusSub.textContent = "Connect JSON copied — merge into ~/.cursor/mcp.json";
-});
+  return cached;
+}
 
 document.getElementById("copyPrompt")!.addEventListener("click", async () => {
-  if (!cached?.settings.token) await refresh();
-  if (!cached?.settings.token) {
-    statusSub.textContent = "Token not ready — reopen the panel";
-    return;
-  }
-  const text = buildChatPrompt(snippetOpts(cached));
+  const state = await ensureState();
+  if (!state) return;
+  const text = buildChatPrompt(snippetOpts(state));
   await navigator.clipboard.writeText(text);
-  statusSub.textContent = "Chat prompt copied — paste into Cursor";
+  copyHint.textContent = "Copied — paste into a new Cursor chat now";
+  statusSub.textContent = "Prompt copied — paste in Cursor";
+});
+
+document.getElementById("copyConnect")!.addEventListener("click", async () => {
+  const state = await ensureState();
+  if (!state) return;
+  const text = buildConnectJson(snippetOpts(state));
+  await navigator.clipboard.writeText(text);
+  statusSub.textContent = "Raw MCP JSON copied (Advanced)";
 });
 
 document.getElementById("regenToken")!.addEventListener("click", async () => {
   const ok = confirm(
-    "Regenerate bridge token? Cursor will disconnect until you copy connect again and update mcp.json.",
+    "Regenerate bridge token? Cursor will disconnect until you copy the setup prompt again.",
   );
   if (!ok) return;
   await chrome.runtime.sendMessage({ type: "perfect_regenerate_token" });
   await refresh();
-  statusSub.textContent = "New token minted — copy connect for Cursor again";
+  statusSub.textContent = "New token minted — copy setup prompt again";
 });
 
 modeSelect.addEventListener("change", async () => {

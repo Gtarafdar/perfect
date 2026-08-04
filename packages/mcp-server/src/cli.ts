@@ -222,9 +222,7 @@ Quick:
     console.log(`Perfect CLI — give Cursor hands in Chrome
 
 First step for every user:
-  perfect setup
-  # or: node path/to/packages/mcp-server/dist/cli.js setup
-  # or: npx -y @perfect/mcp setup   (after publish)
+  npx -y perfect-mcp setup
 
 Commands:
   perfect setup [--write-cursor-config]  Create token + print steps

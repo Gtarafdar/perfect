@@ -6,7 +6,7 @@ Perfect is a **local** Cursor ↔ Chrome bridge. The agent brain lives in Cursor
 
 On first open, the extension mints a **CSPRNG** bridge token (≥24 bytes) and stores it in `chrome.storage.local`.
 
-**Happy path:** **Copy connect for Cursor** puts that token into MCP `env.PERFECT_TOKEN` (and port). Cursor starts `@perfect/mcp` with that env; the extension connects over `ws://127.0.0.1` and must present the same token in `hello`.
+**Happy path:** **Copy setup prompt for Cursor** — paste once into Cursor. The agent merges `mcpServers.perfect` with `npx -y perfect-mcp` and `PERFECT_TOKEN` env. Cursor starts the MCP; the extension connects over `ws://127.0.0.1` with the same token.
 
 - Env token **wins** over `~/.perfect/config.json`.
 - Short / empty tokens are rejected at MCP startup.
