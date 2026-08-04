@@ -168,10 +168,13 @@ export async function runTool(
   tool: string,
   args: Record<string, unknown>,
 ): Promise<ToolResult> {
-  if (stopped && tool !== "browser_stop" && tool !== "browser_status") {
-    return { ok: false, error: "Stopped by user", decision: "deny" };
+  if (tool === "browser_stop") {
+    requestStop();
+    return { ok: true, result: { stopped: true } };
   }
-  clearStop();
+
+  // Stop is a one-shot cancel — next real tool resumes work
+  if (stopped) clearStop();
 
   const settings = await loadSettings();
 
@@ -188,10 +191,6 @@ export async function runTool(
             allowlistOnly: settings.allowlistOnly,
           },
         };
-      }
-      case "browser_stop": {
-        requestStop();
-        return { ok: true, result: { stopped: true } };
       }
       case "browser_tabs": {
         const list = await tabs.listTabs(!!args.all);

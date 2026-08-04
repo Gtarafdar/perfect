@@ -11,12 +11,29 @@ export function setCursorSink(sink: CursorSink | null): void {
 }
 
 export async function attach(tabId: number): Promise<void> {
-  if (attached.has(tabId)) return;
-  await chrome.debugger.attach({ tabId }, "1.3");
+  if (attached.has(tabId)) {
+    try {
+      // Probe — Chrome may have detached while our Set still thinks we're on
+      await chrome.debugger.sendCommand({ tabId }, "Runtime.evaluate", {
+        expression: "1",
+        returnByValue: true,
+      });
+      return;
+    } catch {
+      attached.delete(tabId);
+    }
+  }
+  try {
+    await chrome.debugger.attach({ tabId }, "1.3");
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // Another caller / prior SW may still hold the session
+    if (!/already attached/i.test(msg)) throw e;
+  }
   attached.add(tabId);
-  await send(tabId, "Page.enable", {});
-  await send(tabId, "Runtime.enable", {});
-  await send(tabId, "DOM.enable", {});
+  await chrome.debugger.sendCommand({ tabId }, "Page.enable", {});
+  await chrome.debugger.sendCommand({ tabId }, "Runtime.enable", {});
+  await chrome.debugger.sendCommand({ tabId }, "DOM.enable", {});
 }
 
 export async function detach(tabId: number): Promise<void> {
@@ -39,7 +56,25 @@ export async function send<T = unknown>(
   method: string,
   params: Record<string, unknown>,
 ): Promise<T> {
-  return chrome.debugger.sendCommand({ tabId }, method, params) as Promise<T>;
+  try {
+    return (await chrome.debugger.sendCommand(
+      { tabId },
+      method,
+      params,
+    )) as T;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/not attached|Detached while handling/i.test(msg)) {
+      attached.delete(tabId);
+      await attach(tabId);
+      return (await chrome.debugger.sendCommand(
+        { tabId },
+        method,
+        params,
+      )) as T;
+    }
+    throw e;
+  }
 }
 
 export async function screenshotPng(tabId: number): Promise<string> {
