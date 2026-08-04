@@ -1,5 +1,10 @@
 import { PROTOCOL_VERSION } from "./constants.js";
-import { ensureToken, regenerateToken, saveSettings } from "./security.js";
+import {
+  ensureToken,
+  loadSettings,
+  regenerateToken,
+  saveSettings,
+} from "./security.js";
 import { runTool, resolvePermission, requestStop, getPendingPermission } from "./tools.js";
 import * as cdp from "./cdp.js";
 
