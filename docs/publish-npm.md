@@ -3,8 +3,10 @@
 **End users do not need this.** The Copy setup prompt installs from GitHub:
 
 ```text
-npx -y --package=github:Gtarafdar/perfect#path:packages/mcp-server perfect-mcp
+npx -y --package=github:Gtarafdar/perfect perfect-mcp
 ```
+
+The repo root exposes the `perfect-mcp` bin; the server dist is fully bundled (no nested `npm install`).
 
 Optional registry publish (faster cold starts later):
 

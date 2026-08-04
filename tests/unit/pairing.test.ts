@@ -71,7 +71,7 @@ describe("connect-snippet builders", () => {
       command: "npx",
       args: [
         "-y",
-        "--package=github:Gtarafdar/perfect#path:packages/mcp-server",
+        "--package=github:Gtarafdar/perfect",
         "perfect-mcp",
       ],
       env: { PERFECT_TOKEN: token, PERFECT_WS_PORT: "17321" },

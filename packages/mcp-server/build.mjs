@@ -21,6 +21,9 @@ await esbuild.build({
   target: "node20",
   format: "esm",
   outdir: dist,
+  // Keep Node deps external — root package.json lists them so
+  // `npx github:Gtarafdar/perfect perfect-mcp` installs them once.
+  // (Fully bundling ws into ESM hits Dynamic require of "events".)
   external: [
     "@modelcontextprotocol/sdk",
     "@modelcontextprotocol/sdk/*",

@@ -7,11 +7,12 @@ export const PREFERRED_TOKEN_BYTES = 24;
 export const NPM_PACKAGE = "perfect-mcp";
 
 /**
- * Installs from GitHub monorepo path — no npm publish required for end users.
- * After `npm publish`, we can switch default to plain `npx -y perfect-mcp`.
+ * Installs the whole repo from GitHub — root package.json exposes `perfect-mcp`
+ * bin pointing at the prebuilt (fully bundled) dist. Do NOT use `#path:…`:
+ * npm ignores it here and installs the root without linking the nested bin.
+ * After `npm publish` of perfect-mcp, switch default mode to `npm`.
  */
-export const GITHUB_PACKAGE =
-  "github:Gtarafdar/perfect#path:packages/mcp-server";
+export const GITHUB_PACKAGE = "github:Gtarafdar/perfect";
 
 export function mintTokenHex(
   randomBytes: (size: number) => Uint8Array = defaultRandom,
