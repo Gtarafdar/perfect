@@ -1,4 +1,5 @@
 const ROOT_ID = "perfect-agent-hud";
+const CURSOR_ID = "perfect-agent-cursor";
 
 function ensureHud(): HTMLElement {
   let el = document.getElementById(ROOT_ID);
@@ -43,6 +44,14 @@ function ensureHud(): HTMLElement {
         background: #B8FF3C; color: #0A0B0A; font-weight: 700; font-size: 12px;
       }
       .perfect-hud-stop:hover { filter: brightness(1.05); }
+      #${CURSOR_ID} {
+        position: fixed; left: 0; top: 0; width: 24px; height: 24px;
+        z-index: 2147483646; pointer-events: none; opacity: 0;
+        transform: translate(-2px, -2px);
+        transition: opacity .12s ease;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,.35));
+      }
+      #${CURSOR_ID}.show { opacity: 1; }
     `;
     document.documentElement.appendChild(style);
     document.documentElement.appendChild(el);
@@ -53,9 +62,38 @@ function ensureHud(): HTMLElement {
   return el;
 }
 
+function ensureCursor(): HTMLElement {
+  ensureHud();
+  let el = document.getElementById(CURSOR_ID);
+  if (!el) {
+    el = document.createElement("div");
+    el.id = CURSOR_ID;
+    el.setAttribute("aria-hidden", "true");
+    // Classic pointer shape (green accent tip)
+    el.innerHTML = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 3L4 19L9.2 14.5L12.5 21.2L14.8 20.1L11.4 13.2L18 13L4 3Z"
+          fill="#B8FF3C" stroke="#0A0B0A" stroke-width="1.2" stroke-linejoin="round"/>
+      </svg>
+    `;
+    document.documentElement.appendChild(el);
+  }
+  return el;
+}
+
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.type === "perfect_hud") {
     const el = ensureHud();
     el.classList.toggle("show", !!msg.show);
+  }
+  if (msg?.type === "perfect_cursor") {
+    const el = ensureCursor();
+    if (msg.visible === false) {
+      el.classList.remove("show");
+      return;
+    }
+    el.style.left = `${Number(msg.x) || 0}px`;
+    el.style.top = `${Number(msg.y) || 0}px`;
+    el.classList.add("show");
   }
 });

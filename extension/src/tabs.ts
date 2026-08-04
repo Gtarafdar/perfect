@@ -42,8 +42,20 @@ export async function claimTab(tabId: number): Promise<void> {
   claimed.add(tabId);
 }
 
+/**
+ * Prefer reusing a seed about:blank tab (from ensureGroup) instead of
+ * always opening a second tab — stops the "opened thrice" thrash.
+ */
 export async function createClaimedTab(url: string, active = true): Promise<chrome.tabs.Tab> {
   const gid = await ensureGroup();
+
+  const reusable = await findReusableBlankTab();
+  if (reusable?.id != null) {
+    const updated = await chrome.tabs.update(reusable.id, { url, active });
+    claimed.add(reusable.id);
+    return updated ?? reusable;
+  }
+
   const tab = await chrome.tabs.create({ url, active });
   if (tab.id == null) throw new Error("no tab id");
   await chrome.tabs.group({ tabIds: [tab.id], groupId: gid });
@@ -51,6 +63,23 @@ export async function createClaimedTab(url: string, active = true): Promise<chro
   return tab;
 }
 
+async function findReusableBlankTab(): Promise<chrome.tabs.Tab | null> {
+  const all = await chrome.tabs.query({});
+  for (const t of all) {
+    if (t.id == null || !claimed.has(t.id)) continue;
+    const u = t.url ?? "";
+    if (u === "about:blank" || u === "chrome://newtab/" || u === "") return t;
+  }
+  return null;
+}
+
+/**
+ * Resolve which tab to act on.
+ * - Explicit tabId wins
+ * - Else active claimed tab
+ * - Else any claimed tab
+ * - Else create one
+ */
 export async function resolveTabId(tabId?: number): Promise<number> {
   if (tabId != null) {
     if (!claimed.has(tabId)) await claimTab(tabId);
@@ -64,6 +93,33 @@ export async function resolveTabId(tabId?: number): Promise<number> {
   if (first?.id != null) return first.id;
   const created = await createClaimedTab("about:blank", true);
   return created.id!;
+}
+
+/**
+ * Navigate without spawning extra tabs: reuse claimed tab unless newTab=true.
+ */
+export async function navigateClaimed(
+  url: string,
+  opts: { tabId?: number; newTab?: boolean } = {},
+): Promise<number> {
+  if (opts.newTab) {
+    const t = await createClaimedTab(url, true);
+    return t.id!;
+  }
+  if (opts.tabId != null) {
+    const id = await resolveTabId(opts.tabId);
+    await chrome.tabs.update(id, { url, active: true });
+    return id;
+  }
+  // Default: reuse existing claimed tab if any
+  const existing = getClaimed();
+  if (existing.length > 0) {
+    const id = await resolveTabId(existing[0]);
+    await chrome.tabs.update(id, { url, active: true });
+    return id;
+  }
+  const t = await createClaimedTab(url, true);
+  return t.id!;
 }
 
 export async function listTabs(all: boolean) {

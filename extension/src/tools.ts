@@ -12,6 +12,11 @@ import {
   type Settings,
 } from "./security.js";
 
+// Drive the on-page cursor overlay from CDP mouse moves
+cdp.setCursorSink((tabId, x, y, visible) => {
+  void showCursor(tabId, x, y, visible);
+});
+
 export type ToolResult = {
   ok: boolean;
   result?: unknown;
@@ -225,14 +230,12 @@ export async function runTool(
         if (decision === "deny" || decision === "prohibited") {
           return { ok: false, error: decision === "prohibited" ? "Prohibited" : "Denied", decision, risk };
         }
-        let tabId: number;
-        if (args.newTab || args.tabId == null) {
-          const t = await tabs.createClaimedTab(url, true);
-          tabId = t.id!;
-        } else {
-          tabId = await tabs.resolveTabId(args.tabId as number);
-          await chrome.tabs.update(tabId, { url, active: true });
-        }
+        // Reuse claimed tab by default — only spawn a new tab when newTab=true
+        const tabId = await tabs.navigateClaimed(url, {
+          tabId: args.tabId as number | undefined,
+          newTab: !!args.newTab,
+        });
+        await waitForTabLoad(tabId);
         await showHud(tabId, true);
         await pushLog(tool, `navigate ${url}`);
         return { ok: true, result: { tabId, url }, decision, risk };
@@ -293,8 +296,8 @@ export async function runTool(
           return { ok: false, error: risk === "prohibited" ? "Prohibited action" : "Denied", decision, risk };
         }
         if (!info) return { ok: false, error: `Unknown ref ${ref}. Take a new snapshot.` };
-        await highlightRef(tabId, ref);
         await showHud(tabId, true);
+        await highlightRef(tabId, ref);
         await cdp.clickAt(tabId, info.x, info.y);
         await pushLog(tool, `click ${label} (${reasons.join(",")})`);
         return { ok: true, result: { tabId, ref, label }, decision, risk };
@@ -306,25 +309,56 @@ export async function runTool(
         const text = String(args.value ?? args.text ?? "");
         const ref = args.ref ? String(args.ref) : undefined;
         const inputType = args.inputType ? String(args.inputType) : undefined;
-        const { risk } = classify({ tool, url: tab.url ?? "", text, inputType, label: ref });
-        const decision = await gate(tool, tab.url ?? "", `${tool} into ${ref ?? "focus"}`, risk, settings);
+        const info = ref ? getRef(ref) : undefined;
+        const fieldLabel = String(args.label ?? info?.name ?? ref ?? "focus");
+        const { risk } = classify({
+          tool,
+          url: tab.url ?? "",
+          text,
+          inputType,
+          label: fieldLabel,
+        });
+        const decision = await gate(
+          tool,
+          tab.url ?? "",
+          `${tool} "${fieldLabel}"`,
+          risk,
+          settings,
+        );
         if (decision === "deny" || decision === "prohibited") {
           return { ok: false, error: "Denied", decision, risk };
         }
+        await showHud(tabId, true);
         if (ref) {
-          const info = getRef(ref);
           if (!info) return { ok: false, error: `Unknown ref ${ref}` };
+          // Scroll field into view, move cursor, click to focus — like a person
+          await cdp.evaluate(
+            tabId,
+            `window.scrollTo({ top: Math.max(0, ${info.y} - 200), behavior: 'smooth' })`,
+          );
+          await cdp.delay(280 + Math.random() * 120);
           await highlightRef(tabId, ref);
           await cdp.clickAt(tabId, info.x, info.y);
+          await cdp.delay(150 + Math.random() * 120);
         }
         if (tool === "browser_fill") {
           await cdp.pressKey(tabId, "Meta+a");
+          await cdp.delay(40 + Math.random() * 40);
           await cdp.pressKey(tabId, "Backspace");
+          await cdp.delay(80 + Math.random() * 80);
         }
-        await cdp.insertText(tabId, text);
-        if (args.submit) await cdp.pressKey(tabId, "Enter");
-        await pushLog(tool, `${tool} ${ref ?? ""}`);
-        return { ok: true, result: { tabId, ref }, decision, risk };
+        await cdp.typeHuman(tabId, text);
+        if (args.submit) {
+          await cdp.delay(100 + Math.random() * 100);
+          await cdp.pressKey(tabId, "Enter");
+        }
+        await pushLog(tool, `${tool} ${fieldLabel}`);
+        return {
+          ok: true,
+          result: { tabId, ref, label: fieldLabel },
+          decision,
+          risk,
+        };
       }
       case "browser_press": {
         const tabId = await tabs.resolveTabId(args.tabId as number | undefined);
@@ -366,6 +400,7 @@ export async function runTool(
           return { ok: false, error: "Denied", decision, risk: "protected" };
         }
         await showHud(tabId, false);
+        await showCursor(tabId, 0, 0, false);
         const pngBase64 = await cdp.screenshotPng(tabId);
         await showHud(tabId, true);
         await pushLog(tool, "screenshot");
@@ -407,5 +442,39 @@ async function showHud(tabId: number, show: boolean): Promise<void> {
     await chrome.tabs.sendMessage(tabId, { type: "perfect_hud", show });
   } catch {
     /* content script may be missing on restricted pages */
+  }
+}
+
+async function showCursor(
+  tabId: number,
+  x: number,
+  y: number,
+  visible: boolean,
+): Promise<void> {
+  try {
+    await chrome.tabs.sendMessage(tabId, {
+      type: "perfect_cursor",
+      x,
+      y,
+      visible,
+    });
+  } catch {
+    /* content script may be missing */
+  }
+}
+
+async function waitForTabLoad(tabId: number, timeoutMs = 15000): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const t = await chrome.tabs.get(tabId);
+      if (t.status === "complete") {
+        await cdp.delay(350 + Math.random() * 250);
+        return;
+      }
+    } catch {
+      return;
+    }
+    await cdp.delay(120);
   }
 }

@@ -42,10 +42,37 @@ export async function snapshot(tabId: number): Promise<{
     `(() => {
       const interesting = 'a,button,input,textarea,select,summary,[role="button"],[role="link"],[contenteditable="true"]';
       const els = [...document.querySelectorAll(interesting)].slice(0, 200);
+      const labelText = (el) => {
+        const aria = (el.getAttribute('aria-label') || '').trim();
+        if (aria) return aria;
+        const id = el.getAttribute('id');
+        if (id) {
+          const lab = document.querySelector('label[for="' + CSS.escape(id) + '"]');
+          if (lab?.innerText) return lab.innerText.trim();
+        }
+        const wrapped = el.closest('label');
+        if (wrapped?.innerText) {
+          const t = wrapped.innerText.replace(el.value || '', '').trim();
+          if (t) return t;
+        }
+        // preceding sibling label / dt
+        let prev = el.previousElementSibling;
+        for (let i = 0; i < 3 && prev; i++, prev = prev.previousElementSibling) {
+          if (prev.tagName === 'LABEL' || prev.tagName === 'SPAN' || prev.tagName === 'DIV' || prev.tagName === 'P') {
+            const t = (prev.innerText || '').trim();
+            if (t && t.length < 80) return t;
+          }
+        }
+        const ph = (el.getAttribute('placeholder') || '').trim();
+        if (ph) return ph;
+        const name = (el.getAttribute('name') || '').trim();
+        if (name) return name;
+        return (el.innerText || '').trim();
+      };
       const nodes = els.map((el) => {
         const r = el.getBoundingClientRect();
         const role = el.getAttribute('role') || el.tagName.toLowerCase();
-        const name = (el.getAttribute('aria-label') || el.innerText || el.getAttribute('placeholder') || el.getAttribute('name') || '').trim().slice(0, 120);
+        const name = labelText(el).slice(0, 120);
         return {
           role,
           name,
