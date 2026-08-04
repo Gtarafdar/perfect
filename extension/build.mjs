@@ -9,10 +9,21 @@ const dist = join(root, "dist");
 mkdirSync(dist, { recursive: true });
 mkdirSync(join(dist, "icons"), { recursive: true });
 
+// Service worker as IIFE (classic script) — avoids ESM SW scope quirks in Chrome
 await esbuild.build({
-  entryPoints: [join(root, "src/background.ts"), join(root, "src/sidepanel.ts")],
+  entryPoints: [join(root, "src/background.ts")],
   bundle: true,
-  outdir: dist,
+  outfile: join(dist, "background.js"),
+  format: "iife",
+  target: "chrome120",
+  sourcemap: true,
+  logLevel: "info",
+});
+
+await esbuild.build({
+  entryPoints: [join(root, "src/sidepanel.ts")],
+  bundle: true,
+  outfile: join(dist, "sidepanel.js"),
   format: "esm",
   target: "chrome120",
   sourcemap: true,

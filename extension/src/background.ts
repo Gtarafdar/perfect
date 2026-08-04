@@ -1,7 +1,6 @@
 import { PROTOCOL_VERSION } from "./constants.js";
 import {
   ensureToken,
-  loadSettings,
   regenerateToken,
   saveSettings,
 } from "./security.js";
@@ -14,6 +13,8 @@ let linked = false;
 let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
 /** Bumps on each new socket so stale close handlers don't schedule reconnect loops */
 let socketGen = 0;
+/** Back off when MCP isn't listening — stops Chrome error-page spam */
+let failStreak = 0;
 
 function startKeepAlive(): void {
   if (keepAliveTimer) return;
@@ -85,6 +86,18 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return false;
   }
   if (msg?.type === "perfect_reconnect") {
+    // Already Linked — don't tear down (avoids ERR_CONNECTION_REFUSED flash)
+    if (linked && ws && ws.readyState === WebSocket.OPEN) {
+      failStreak = 0;
+      try {
+        ws.send(JSON.stringify({ type: "ping", t: Date.now() }));
+      } catch {
+        /* */
+      }
+      sendResponse({ ok: true, alreadyLinked: true });
+      return false;
+    }
+    failStreak = 0;
     void connectLoop({ force: true });
     sendResponse({ ok: true });
     return false;
@@ -112,7 +125,8 @@ async function connectLoop(opts?: { force?: boolean }): Promise<void> {
     return;
   }
 
-  const settings = await loadSettings();
+  // ensureToken (not loadSettings) — always defined after SW boot; mints token if missing
+  const settings = await ensureToken();
   if (!settings.token) {
     linked = false;
     broadcast({ type: "perfect_event", event: "disconnected" });
@@ -136,6 +150,7 @@ async function connectLoop(opts?: { force?: boolean }): Promise<void> {
     ws = socket;
     socket.addEventListener("open", () => {
       if (gen !== socketGen || ws !== socket) return;
+      failStreak = 0;
       socket.send(
         JSON.stringify({
           type: "hello",
@@ -157,13 +172,23 @@ async function connectLoop(opts?: { force?: boolean }): Promise<void> {
       stopKeepAlive();
       broadcast({ type: "perfect_event", event: "disconnected" });
       void cdp.detachAll();
-      reconnectTimer = setTimeout(() => void connectLoop(), 2000);
+      failStreak += 1;
+      // After several refusals, pause auto-retry — Chrome logs every failed WS.
+      // User (or MCP coming back + Reconnect) resumes.
+      if (failStreak >= 6) {
+        return;
+      }
+      // 2s, 3s, 4.5s … cap 20s — fewer ERR_CONNECTION_REFUSED while MCP is down
+      const delayMs = Math.min(20_000, Math.round(2000 * Math.pow(1.5, Math.min(failStreak - 1, 6))));
+      reconnectTimer = setTimeout(() => void connectLoop(), delayMs);
     });
     socket.addEventListener("error", () => {
       /* close handler reconnects */
     });
   } catch {
-    reconnectTimer = setTimeout(() => void connectLoop(), 3000);
+    failStreak += 1;
+    const delayMs = Math.min(20_000, Math.round(3000 * Math.pow(1.5, Math.min(failStreak - 1, 6))));
+    reconnectTimer = setTimeout(() => void connectLoop(), delayMs);
   }
 }
 
@@ -190,8 +215,10 @@ async function onMessage(raw: string): Promise<void> {
   if (msg.type === "hello_ack") {
     const prev = linked;
     linked = !!msg.ok;
-    if (linked) startKeepAlive();
-    else stopKeepAlive();
+    if (linked) {
+      failStreak = 0;
+      startKeepAlive();
+    } else stopKeepAlive();
     // Only broadcast when link state actually changes — stops UI thrash
     if (prev !== linked) {
       broadcast({

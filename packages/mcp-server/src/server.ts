@@ -360,13 +360,14 @@ async function main(): Promise<void> {
     { capabilities: { tools: {} } },
   );
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: TOOLS.map((t) => ({
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    const tools = TOOLS.map((t) => ({
       name: t.name,
       description: t.description,
       inputSchema: t.inputSchema,
-    })),
-  }));
+    }));
+    return { tools };
+  });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const name = request.params.name as ToolName;

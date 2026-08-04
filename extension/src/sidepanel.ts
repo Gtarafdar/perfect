@@ -246,12 +246,40 @@ document.getElementById("deny")!.addEventListener("click", () => {
   }, 200);
 });
 
+function flashHud(message: string): void {
+  ticker.dataset.sig = `flash:${message}:${Date.now()}`;
+  ticker.innerHTML = "";
+  const li = document.createElement("li");
+  li.textContent = message;
+  ticker.appendChild(li);
+  statusSub.textContent = message;
+}
+
 document.getElementById("stopBtn")!.addEventListener("click", () => {
-  chrome.runtime.sendMessage({ type: "perfect_stop" });
+  flashHud("Stop sent — cancelling in-flight actions…");
+  chrome.runtime.sendMessage({ type: "perfect_stop" }, (resp) => {
+    flashHud(
+      chrome.runtime.lastError
+        ? `Stop failed: ${chrome.runtime.lastError.message}`
+        : "Stopped — debugger detached",
+    );
+  });
 });
 
 document.getElementById("reconnect")!.addEventListener("click", async () => {
-  await chrome.runtime.sendMessage({ type: "perfect_reconnect" });
+  flashHud("Reconnecting to Cursor MCP…");
+  try {
+    const resp = (await chrome.runtime.sendMessage({
+      type: "perfect_reconnect",
+    })) as { ok?: boolean; alreadyLinked?: boolean } | undefined;
+    flashHud(
+      resp?.alreadyLinked
+        ? "Already linked — pinged bridge"
+        : "Reconnect requested — waiting for Linked…",
+    );
+  } catch (e) {
+    flashHud(`Reconnect failed: ${String(e)}`);
+  }
   lastRenderKey = "";
   await refresh();
 });

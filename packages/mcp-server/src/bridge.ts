@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import { execSync } from "node:child_process";
 import { WebSocketServer, WebSocket } from "ws";
 import {
   PROTOCOL_VERSION,
@@ -7,6 +8,31 @@ import {
   type ToolResponse,
 } from "@perfect/protocol";
 import type { PerfectConfig } from "./config.js";
+
+function delay(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Best-effort: SIGTERM whatever is listening on 127.0.0.1:port (stale Perfect MCP). */
+function freeLocalPort(port: number): void {
+  try {
+    const out = execSync(`lsof -nP -iTCP:${port} -sTCP:LISTEN -t`, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    for (const line of out.split("\n")) {
+      const pid = Number(line.trim());
+      if (!pid || pid === process.pid) continue;
+      try {
+        process.kill(pid, "SIGTERM");
+      } catch {
+        /* */
+      }
+    }
+  } catch {
+    /* nothing listening / lsof unavailable */
+  }
+}
 
 export class ExtensionBridge extends EventEmitter {
   private wss: WebSocketServer | null = null;
@@ -28,6 +54,11 @@ export class ExtensionBridge extends EventEmitter {
 
   async start(): Promise<void> {
     if (this.wss) return;
+    await this.listenWithRetry(2);
+  }
+
+  /** Bind WS; on EADDRINUSE kill the stale localhost listener (prior Perfect MCP) and retry. */
+  private async listenWithRetry(attemptsLeft: number): Promise<void> {
     this.wss = new WebSocketServer({
       host: "127.0.0.1",
       port: this.cfg.wsPort,
@@ -55,22 +86,36 @@ export class ExtensionBridge extends EventEmitter {
       });
     });
 
-    await new Promise<void>((resolve, reject) => {
-      this.wss!.once("listening", () => resolve());
-      this.wss!.once("error", (err: NodeJS.ErrnoException) => {
-        if (err.code === "EADDRINUSE") {
-          reject(
-            new Error(
-              `Perfect bridge port ${this.cfg.wsPort} is already in use (EADDRINUSE). ` +
-                `Free it (quit the other Perfect MCP / kill the process on 127.0.0.1:${this.cfg.wsPort}) ` +
-                `then re-enable the perfect MCP in Cursor. Do not change PERFECT_WS_PORT unless you also update the Chrome extension.`,
-            ),
-          );
-          return;
-        }
-        reject(err);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        this.wss!.once("listening", () => resolve());
+        this.wss!.once("error", (err: NodeJS.ErrnoException) => reject(err));
       });
-    });
+    } catch (err) {
+      const e = err as NodeJS.ErrnoException;
+      try {
+        this.wss.close();
+      } catch {
+        /* */
+      }
+      this.wss = null;
+      if (e.code === "EADDRINUSE" && attemptsLeft > 0) {
+        console.error(
+          `[perfect] port ${this.cfg.wsPort} busy — freeing stale Perfect listener and retrying`,
+        );
+        await freeLocalPort(this.cfg.wsPort);
+        await delay(400);
+        return this.listenWithRetry(attemptsLeft - 1);
+      }
+      if (e.code === "EADDRINUSE") {
+        throw new Error(
+          `Perfect bridge port ${this.cfg.wsPort} is already in use (EADDRINUSE). ` +
+            `Free it (quit the other Perfect MCP / kill the process on 127.0.0.1:${this.cfg.wsPort}) ` +
+            `then re-enable the perfect MCP in Cursor. Do not change PERFECT_WS_PORT unless you also update the Chrome extension.`,
+        );
+      }
+      throw e;
+    }
   }
 
   async stop(): Promise<void> {
@@ -158,6 +203,14 @@ export class ExtensionBridge extends EventEmitter {
         this.send(ws, { type: "hello_ack", ok: false, error: "expected extension" });
         ws.close();
         return;
+      }
+      // Replace prior extension socket so force-reconnect doesn't leave two half-open links
+      if (this.ext && this.ext !== ws) {
+        try {
+          this.ext.close(1000, "replaced");
+        } catch {
+          /* */
+        }
       }
       this.ext = ws;
       this.connected = true;
