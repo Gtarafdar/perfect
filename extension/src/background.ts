@@ -172,11 +172,7 @@ async function onMessage(raw: string): Promise<void> {
   }
 
   if (msg.type === "tool_request" && msg.id && msg.tool) {
-    broadcast({
-      type: "perfect_event",
-      event: "tool_start",
-      payload: { tool: msg.tool },
-    });
+    // Don't broadcast tool_start — it forced the side panel to re-render every action
     const result = await runTool(msg.tool, msg.args ?? {});
     ws?.send(
       JSON.stringify({
@@ -189,6 +185,7 @@ async function onMessage(raw: string): Promise<void> {
         risk: result.risk,
       }),
     );
+    return;
   }
 }
 

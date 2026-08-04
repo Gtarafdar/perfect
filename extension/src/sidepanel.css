@@ -83,6 +83,8 @@ h1 {
 .status-card.linked {
   border-color: rgba(184, 255, 60, 0.45);
   background: linear-gradient(180deg, var(--lime-dim), var(--bg-elev));
+  /* Avoid flashy transitions when class toggles on poll races */
+  transition: none;
 }
 
 .status-row {
@@ -101,15 +103,16 @@ h1 {
 
 .status-card.linked .pulse {
   background: var(--lime);
-  animation: pulse 1.6s ease infinite;
+  /* Soft pulse — big box-shadow looked like the whole panel flashing */
+  animation: pulse 2.4s ease infinite;
 }
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(184, 255, 60, 0.55);
+    box-shadow: 0 0 0 0 rgba(184, 255, 60, 0.35);
   }
   70% {
-    box-shadow: 0 0 0 12px rgba(184, 255, 60, 0);
+    box-shadow: 0 0 0 6px rgba(184, 255, 60, 0);
   }
   100% {
     box-shadow: 0 0 0 0 rgba(184, 255, 60, 0);

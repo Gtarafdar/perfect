@@ -31,6 +31,10 @@ const copyHint = document.getElementById("copyHint")!;
 const devServerPath = document.getElementById("devServerPath") as HTMLInputElement;
 
 let cached: State | null = null;
+let lastRenderKey = "";
+/** Don't flash "Waiting" on a single flaky poll while still Linked */
+let linkedStickyUntil = 0;
+let refreshInFlight: Promise<void> | null = null;
 
 function snippetOpts(state: State) {
   const path = devServerPath.value.trim();
@@ -42,7 +46,6 @@ function snippetOpts(state: State) {
       serverPath: path,
     };
   }
-  // Default: GitHub install — works for everyone without npm publish
   return {
     token: state.settings.token,
     wsPort: state.settings.wsPort || 17321,
@@ -50,40 +53,93 @@ function snippetOpts(state: State) {
   };
 }
 
+function stateKey(state: State): string {
+  return JSON.stringify({
+    linked: state.linked,
+    mode: state.settings.mode,
+    token: Boolean(state.settings.token),
+    log: state.settings.actionLog ?? [],
+    perm: state.pendingPermission,
+  });
+}
+
 async function refresh(): Promise<void> {
-  const state = (await chrome.runtime.sendMessage({
-    type: "perfect_get_state",
-  })) as State;
-  cached = state;
-  render(state);
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    try {
+      const state = (await chrome.runtime.sendMessage({
+        type: "perfect_get_state",
+      })) as State | undefined;
+      if (!state?.settings) return;
+
+      // Sticky linked: ignore a single false blip for 1.5s (SW wake / race)
+      if (state.linked) {
+        linkedStickyUntil = Date.now() + 1500;
+      } else if (Date.now() < linkedStickyUntil) {
+        state.linked = true;
+      }
+
+      const key = stateKey(state);
+      if (key === lastRenderKey) {
+        cached = state;
+        return;
+      }
+      lastRenderKey = key;
+      cached = state;
+      render(state);
+    } catch {
+      /* SW restarting — skip; next event/poll will catch up */
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
 }
 
 function render(state: State): void {
   statusCard.classList.toggle("linked", state.linked);
   statusLabel.textContent = state.linked ? "Linked to Cursor" : "Waiting for Cursor MCP";
   statusSub.textContent = state.linked
-    ? "Bridge live · actions appear below"
+    ? "Bridge live · errors stay below"
     : "Paste the setup prompt in Cursor — I’ll handle the rest";
 
   setupBox.hidden = state.linked;
-  tokenInput.value = state.settings.token ? "••••••••••••••••" : "";
+  if (!tokenInput.value && state.settings.token) {
+    tokenInput.value = "••••••••••••••••";
+  }
 
-  modeSelect.value = state.settings.mode || "manual";
-  ticker.innerHTML = "";
+  if (modeSelect.value !== (state.settings.mode || "manual")) {
+    modeSelect.value = state.settings.mode || "manual";
+  }
+
   const rows = state.settings.actionLog ?? [];
-  if (rows.length === 0) {
-    const li = document.createElement("li");
-    li.className = "ticker-empty";
-    li.textContent = state.linked ? "Ready — errors stay here; successes clear" : "Waiting…";
-    ticker.appendChild(li);
-  } else {
-    for (const row of rows) {
+  const nextTicker =
+    rows.length === 0
+      ? state.linked
+        ? "Ready — errors stay here; successes clear"
+        : "Waiting…"
+      : rows.map((r) => `${r.summary.startsWith("✗") ? "err|" : ""}${r.tool} · ${r.summary}`).join("\n");
+
+  if (ticker.dataset.sig !== nextTicker) {
+    ticker.dataset.sig = nextTicker;
+    ticker.innerHTML = "";
+    if (rows.length === 0) {
       const li = document.createElement("li");
-      li.className = row.summary.startsWith("✗") ? "err" : "";
-      li.textContent = `${row.tool} · ${row.summary}`;
+      li.className = "ticker-empty";
+      li.textContent = state.linked
+        ? "Ready — errors stay here; successes clear"
+        : "Waiting…";
       ticker.appendChild(li);
+    } else {
+      for (const row of rows) {
+        const li = document.createElement("li");
+        li.className = row.summary.startsWith("✗") ? "err" : "";
+        li.textContent = `${row.tool} · ${row.summary}`;
+        ticker.appendChild(li);
+      }
     }
   }
+
   if (state.pendingPermission) {
     permissionBox.hidden = false;
     permSummary.textContent = state.pendingPermission.summary;
@@ -125,6 +181,7 @@ document.getElementById("regenToken")!.addEventListener("click", async () => {
   );
   if (!ok) return;
   await chrome.runtime.sendMessage({ type: "perfect_regenerate_token" });
+  lastRenderKey = "";
   await refresh();
   statusSub.textContent = "New token minted — copy setup prompt again";
 });
@@ -149,6 +206,7 @@ modeSelect.addEventListener("change", async () => {
       partial: { mode, skipConfirmed: false },
     });
   }
+  lastRenderKey = "";
   await refresh();
 });
 
@@ -157,7 +215,10 @@ document.getElementById("allowOnce")!.addEventListener("click", () => {
     type: "perfect_permission_reply",
     decision: "allow_once",
   });
-  setTimeout(() => void refresh(), 200);
+  setTimeout(() => {
+    lastRenderKey = "";
+    void refresh();
+  }, 200);
 });
 
 document.getElementById("allowSite")!.addEventListener("click", () => {
@@ -165,7 +226,10 @@ document.getElementById("allowSite")!.addEventListener("click", () => {
     type: "perfect_permission_reply",
     decision: "always_allow_site",
   });
-  setTimeout(() => void refresh(), 200);
+  setTimeout(() => {
+    lastRenderKey = "";
+    void refresh();
+  }, 200);
 });
 
 document.getElementById("deny")!.addEventListener("click", () => {
@@ -173,7 +237,10 @@ document.getElementById("deny")!.addEventListener("click", () => {
     type: "perfect_permission_reply",
     decision: "deny",
   });
-  setTimeout(() => void refresh(), 200);
+  setTimeout(() => {
+    lastRenderKey = "";
+    void refresh();
+  }, 200);
 });
 
 document.getElementById("stopBtn")!.addEventListener("click", () => {
@@ -182,12 +249,33 @@ document.getElementById("stopBtn")!.addEventListener("click", () => {
 
 document.getElementById("reconnect")!.addEventListener("click", async () => {
   await chrome.runtime.sendMessage({ type: "perfect_reconnect" });
+  lastRenderKey = "";
   await refresh();
 });
 
+// Only re-render on events that change UI — ignore tool_start spam
 chrome.runtime.onMessage.addListener((msg) => {
-  if (msg?.type === "perfect_event") void refresh();
+  if (msg?.type !== "perfect_event") return;
+  const ev = msg.event as string;
+  if (ev === "tool_start") return;
+  if (ev === "tool_end" && msg.payload?.ok === true) {
+    // Success clears HUD — refresh once, no poll storm
+    lastRenderKey = "";
+    void refresh();
+    return;
+  }
+  if (
+    ev === "connected" ||
+    ev === "disconnected" ||
+    ev === "permission" ||
+    ev === "stopped" ||
+    ev === "tool_end"
+  ) {
+    lastRenderKey = "";
+    void refresh();
+  }
 });
 
 void refresh();
-setInterval(() => void refresh(), 2000);
+// Rare health check only — was 2s and caused the green flash
+setInterval(() => void refresh(), 15000);
