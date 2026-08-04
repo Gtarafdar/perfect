@@ -23,6 +23,8 @@ const ticker = document.getElementById("ticker")!;
 const permissionBox = document.getElementById("permissionBox")!;
 const permSummary = document.getElementById("permSummary")!;
 const permMeta = document.getElementById("permMeta")!;
+const setupBox = document.getElementById("setupBox")!;
+const tokenHint = document.getElementById("tokenHint")!;
 
 async function refresh(): Promise<void> {
   const state = (await chrome.runtime.sendMessage({
@@ -36,7 +38,14 @@ function render(state: State): void {
   statusLabel.textContent = state.linked ? "Linked to Cursor" : "Waiting for MCP";
   statusSub.textContent = state.linked
     ? "Bridge live · actions appear below"
-    : "Start Perfect MCP in Cursor, then paste token";
+    : "Run setup → paste token → enable Perfect MCP in Cursor";
+
+  const hasToken = Boolean(state.settings.token || tokenInput.value.trim());
+  setupBox.hidden = state.linked;
+  tokenHint.textContent = hasToken
+    ? "Token saved. Enable Perfect MCP in Cursor, then click Reconnect if needed."
+    : "No token yet? Run setup in step 1 first.";
+
   if (state.settings.token && !tokenInput.value) {
     tokenInput.value = state.settings.token;
   }
@@ -56,10 +65,21 @@ function render(state: State): void {
   }
 }
 
+document.getElementById("copySetupCmd")!.addEventListener("click", async () => {
+  const cmd = document.getElementById("setupCmd")!.textContent ?? "";
+  await navigator.clipboard.writeText(cmd);
+  statusSub.textContent = "Setup command copied — paste in Terminal";
+});
+
 document.getElementById("saveToken")!.addEventListener("click", async () => {
+  const token = tokenInput.value.trim();
+  if (!token) {
+    statusSub.textContent = "Paste the token from `perfect setup` first";
+    return;
+  }
   await chrome.runtime.sendMessage({
     type: "perfect_save_settings",
-    partial: { token: tokenInput.value.trim() },
+    partial: { token },
   });
   await chrome.runtime.sendMessage({ type: "perfect_reconnect" });
   await refresh();
@@ -69,7 +89,7 @@ modeSelect.addEventListener("change", async () => {
   const mode = modeSelect.value;
   if (mode === "skip") {
     const ok = confirm(
-      "Skip mode lets Perfect act as you with almost no prompts. Prohibited actions still block. Type confirmation OK only if you understand the risk.",
+      "Skip mode lets Perfect act as you with almost no prompts. Prohibited actions still block. Continue only if you understand the risk.",
     );
     if (!ok) {
       modeSelect.value = "manual";
@@ -131,7 +151,7 @@ document.getElementById("copyConfig")!.addEventListener("click", async () => {
   }
 }`;
   await navigator.clipboard.writeText(snippet);
-  statusSub.textContent = "MCP config copied";
+  statusSub.textContent = "MCP config copied — merge into ~/.cursor/mcp.json";
 });
 
 chrome.runtime.onMessage.addListener((msg) => {

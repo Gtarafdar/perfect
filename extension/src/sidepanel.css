@@ -280,3 +280,43 @@ select {
 .foot a {
   color: var(--lime);
 }
+
+.setup h2 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--lime);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.steps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #d5dacd;
+}
+
+.steps strong {
+  color: var(--text);
+}
+
+.cmd {
+  margin: 8px 0;
+  padding: 10px 12px;
+  background: #050605;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: 500 11px var(--font-mono);
+  color: var(--lime);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+#setupBox[hidden] {
+  display: none;
+}

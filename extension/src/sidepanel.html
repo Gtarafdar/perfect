@@ -21,18 +21,42 @@
           <span class="pulse" id="pulse"></span>
           <div>
             <div class="status-label" id="statusLabel">Waiting for MCP</div>
-            <div class="status-sub" id="statusSub">Start the Perfect MCP server in Cursor</div>
+            <div class="status-sub" id="statusSub">Follow setup below — takes about 1 minute</div>
           </div>
         </div>
+      </section>
+
+      <section class="block setup" id="setupBox">
+        <h2>First-time setup</h2>
+        <ol class="steps">
+          <li>
+            <strong>Create your bridge token</strong> in Terminal:
+            <pre class="cmd" id="setupCmd">npx -y @perfect/mcp setup</pre>
+            <button type="button" class="btn sm" id="copySetupCmd">Copy command</button>
+            <p class="hint">Building from GitHub instead:
+              <code>node packages/mcp-server/dist/cli.js setup</code>
+            </p>
+          </li>
+          <li>
+            <strong>Copy the token</strong> the command prints (also in
+            <code>~/.perfect/token.txt</code>), paste below, click <strong>Link</strong>.
+          </li>
+          <li>
+            <strong>Add Perfect to Cursor MCP</strong> (Settings → MCP), or click
+            <strong>Copy Cursor MCP config</strong> and merge into
+            <code>~/.cursor/mcp.json</code>, then enable the server.
+          </li>
+        </ol>
+        <p class="hint">The token is a local secret so only your Cursor can drive Chrome — not a Cursor account password.</p>
       </section>
 
       <section class="block">
         <label class="field-label" for="token">Bridge token</label>
         <div class="row">
-          <input id="token" type="password" placeholder="Paste token from perfect install" autocomplete="off" />
+          <input id="token" type="password" placeholder="Paste token from: perfect setup" autocomplete="off" />
           <button type="button" id="saveToken" class="btn primary">Link</button>
         </div>
-        <p class="hint">Run <code>perfect install</code> then paste <code>~/.perfect/token.txt</code></p>
+        <p class="hint" id="tokenHint">No token yet? Run setup in step 1 first.</p>
       </section>
 
       <section class="block">
