@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+coverage/
+.perfect/
+extension/dist/
+packages/*/dist/
+*.zip
+.env
+.env.*
+!.env.example

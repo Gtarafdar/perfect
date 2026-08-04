@@ -1,0 +1,13 @@
+{
+  "name": "@perfect/extension",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.313",
+    "esbuild": "^0.25.1"
+  }
+}

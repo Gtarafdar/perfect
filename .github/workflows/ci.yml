@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm install
+      - run: npm run build
+      - run: npm run test:unit
+      - run: npm run test:integration
+      - run: npm run pack:extension
+      - uses: actions/upload-artifact@v4
+        with:
+          name: perfect-extension
+          path: perfect-extension.zip

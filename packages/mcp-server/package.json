@@ -1,0 +1,28 @@
+{
+  "name": "@perfect/mcp",
+  "version": "0.1.0",
+  "description": "Perfect MCP server — Cursor ↔ Chrome bridge",
+  "type": "module",
+  "bin": {
+    "perfect": "./dist/cli.js",
+    "perfect-mcp": "./dist/server.js"
+  },
+  "main": "./dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js dist/server.js dist/host.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/server.js",
+    "demo": "node dist/cli.js demo"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0",
+    "@perfect/protocol": "0.1.0",
+    "ws": "^8.18.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.0"
+  },
+  "files": ["dist"],
+  "license": "MIT"
+}

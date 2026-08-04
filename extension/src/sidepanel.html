@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Perfect</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="brand">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <h1>Perfect</h1>
+          <p class="tag">Cursor’s hands in Chrome</p>
+        </div>
+      </header>
+
+      <section class="status-card" id="statusCard">
+        <div class="status-row">
+          <span class="pulse" id="pulse"></span>
+          <div>
+            <div class="status-label" id="statusLabel">Waiting for MCP</div>
+            <div class="status-sub" id="statusSub">Start the Perfect MCP server in Cursor</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="block">
+        <label class="field-label" for="token">Bridge token</label>
+        <div class="row">
+          <input id="token" type="password" placeholder="Paste token from perfect install" autocomplete="off" />
+          <button type="button" id="saveToken" class="btn primary">Link</button>
+        </div>
+        <p class="hint">Run <code>perfect install</code> then paste <code>~/.perfect/token.txt</code></p>
+      </section>
+
+      <section class="block">
+        <label class="field-label" for="mode">Permission mode</label>
+        <select id="mode">
+          <option value="manual">Manual — ask every time (safest)</option>
+          <option value="auto">Auto — pause on protected / new sites</option>
+          <option value="skip">Skip — dangerous, still blocks prohibited</option>
+        </select>
+        <p class="hint">Modeled on Claude for Chrome. Default is Manual.</p>
+      </section>
+
+      <section class="block permission" id="permissionBox" hidden>
+        <h2>Permission required</h2>
+        <p id="permSummary"></p>
+        <p class="meta" id="permMeta"></p>
+        <div class="row wrap">
+          <button type="button" class="btn primary" id="allowOnce">Allow once</button>
+          <button type="button" class="btn" id="allowSite">Always allow site</button>
+          <button type="button" class="btn danger" id="deny">Deny</button>
+        </div>
+      </section>
+
+      <section class="block">
+        <div class="row between">
+          <h2>Action HUD</h2>
+          <button type="button" class="btn danger sm" id="stopBtn">Stop</button>
+        </div>
+        <ol class="ticker" id="ticker"></ol>
+      </section>
+
+      <section class="block">
+        <button type="button" class="btn block" id="copyConfig">Copy Cursor MCP config</button>
+        <button type="button" class="btn block ghost" id="reconnect">Reconnect</button>
+      </section>
+
+      <footer class="foot">
+        Unofficial open source · Not affiliated with Cursor / Anysphere
+        <a href="https://github.com/Gtarafdar/perfect" id="repoLink" target="_blank" rel="noreferrer">GitHub</a>
+      </footer>
+    </div>
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>

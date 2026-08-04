@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Checkout fixture</title>
+</head>
+<body>
+  <h1>Fake Store Checkout</h1>
+  <button id="buy" type="button">Buy now</button>
+  <p id="status">idle</p>
+  <script>
+    document.getElementById('buy').onclick = () => {
+      document.getElementById('status').textContent = 'PURCHASED';
+    };
+  </script>
+</body>
+</html>
