@@ -20,28 +20,20 @@ Cursor  --MCP stdio-->  @perfect/mcp  --localhost WS + token-->  Chrome extensio
 
 ## Quick start
 
-**First step for every user** (this creates the bridge token):
+1. Install the Chrome extension (Store, or Load unpacked → `extension/dist` after `npm run build`)
+2. Open the Perfect side panel — a bridge token is **minted automatically**
+3. Click **Copy connect for Cursor** (or **Copy chat prompt** and paste into Cursor to merge config)
+4. Enable the **perfect** MCP in Cursor Settings → MCP
+5. Wait until the panel shows **Linked to Cursor**
+6. Ask Cursor: *“Using Perfect, open https://example.com and snapshot the headings.”*
 
-```bash
-npx -y @perfect/mcp setup
-# from this repo before publish:
-# node packages/mcp-server/dist/cli.js setup
-```
-
-That prints your **bridge token** and the Cursor MCP config.
-
-Then:
-
-1. Install the Chrome extension (Store, or Load unpacked → `extension/dist`)
-2. Open the Perfect side panel → paste token → **Link**
-3. Add/enable the **perfect** MCP server in Cursor (config is printed by setup)
-4. Ask Cursor: *“Using Perfect, open https://example.com and snapshot the headings.”*
-
-The token is a **local secret** stored in `~/.perfect/token.txt` so only your machine’s MCP can drive Chrome. It is not a Cursor login.
+The token lives in extension storage and in your local `mcp.json` `env` — not a Cursor account password. See [docs/SECURITY.md](docs/SECURITY.md).
 
 ```bash
 npm install && npm run build   # developers building from source
 ```
+
+**Advanced / CLI:** `node packages/mcp-server/dist/cli.js setup` still works. For local git builds, set the optional server.js path under Advanced before copying connect.
 
 ## Permission modes (default: Manual)
 

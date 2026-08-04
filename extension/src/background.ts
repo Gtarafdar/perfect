@@ -1,5 +1,5 @@
 import { PROTOCOL_VERSION } from "./constants.js";
-import { loadSettings, saveSettings } from "./security.js";
+import { ensureToken, regenerateToken, saveSettings } from "./security.js";
 import { runTool, resolvePermission, requestStop, getPendingPermission } from "./tools.js";
 import * as cdp from "./cdp.js";
 
@@ -10,19 +10,19 @@ let linked = false;
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 
 chrome.runtime.onInstalled.addListener(() => {
-  void connectLoop();
+  void ensureToken().then(() => connectLoop());
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  void connectLoop();
+  void ensureToken().then(() => connectLoop());
 });
 
-void connectLoop();
+void ensureToken().then(() => connectLoop());
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "perfect_get_state") {
     void (async () => {
-      const settings = await loadSettings();
+      const settings = await ensureToken();
       sendResponse({
         linked,
         settings,
@@ -33,6 +33,15 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg?.type === "perfect_save_settings") {
     void saveSettings(msg.partial).then((s) => sendResponse({ ok: true, settings: s }));
+    return true;
+  }
+  if (msg?.type === "perfect_regenerate_token") {
+    void (async () => {
+      const settings = await regenerateToken();
+      linked = false;
+      void connectLoop();
+      sendResponse({ ok: true, settings });
+    })();
     return true;
   }
   if (msg?.type === "perfect_permission_reply") {

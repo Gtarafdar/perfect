@@ -9,36 +9,41 @@ Not affiliated with Cursor / Anysphere.
 ```bash
 git clone https://github.com/Gtarafdar/perfect.git
 cd perfect && npm install && npm run build
-# Chrome → Load unpacked → extension/dist
-node packages/mcp-server/dist/cli.js install --extension-id <id>
-# Add printed mcp.json snippet; paste token in side panel
 ```
+
+1. Chrome → Load unpacked → `extension/dist`
+2. Open Perfect side panel → **Copy connect for Cursor**
+   - Under Advanced, set local `server.js` path to  
+     `…/perfect/packages/mcp-server/dist/server.js` before copy (until npm publish)
+3. Merge into `~/.cursor/mcp.json` (or paste **Copy chat prompt** into Cursor)
+4. Enable **perfect** MCP → panel shows **Linked to Cursor**
 
 In Cursor: “Using Perfect, open example.com and snapshot headings.”
 
 ## Architecture
 
-Cursor (stdio MCP) → `@perfect/mcp` (localhost WS + token) → extension service worker → `chrome.debugger` CDP → Perfect tab group.
+Cursor (stdio MCP + `PERFECT_TOKEN` env) → `@perfect/mcp` → localhost WS → extension → `chrome.debugger` CDP → Perfect tab group.
 
 ## Security (read first)
 
 See [SECURITY.md](./SECURITY.md) and [permissions.md](./permissions.md).
 
-We mirror Claude for Chrome’s Manual / Auto / Skip, site grants, protected + prohibited actions. We do **not** ship cloud ML classifiers — heuristics + human gates only.
+Extension-first pairing mints a CSPRNG token; MCP must present the same env token. We mirror Claude for Chrome’s Manual / Auto / Skip, site grants, protected + prohibited actions. We do **not** ship cloud ML classifiers — heuristics + human gates only.
 
 ## Why it’s interesting for Cursor
 
 - Uses the user’s real profile (auth cookies) without Playwright’s blank profile
 - MCP-native (fits Cursor’s tool loop today)
+- One-click connect snippet from the extension (no Terminal required)
 - Visible tab group + Stop HUD for trust
-- Store-oriented packaging path for distribution
 
 ## Red-team in 10 minutes
 
 1. Skip mode + checkout fixture → purchase must still hard-block
 2. Injection fixture → snapshot flags / pause
-3. Wrong bridge token → no link
-4. `browser_evaluate` with `document.cookie` → prohibited
+3. Wrong `PERFECT_TOKEN` → no link
+4. Regenerate token in panel → old mcp.json env fails until re-copy
+5. `browser_evaluate` with `document.cookie` → prohibited
 
 ## Contact
 

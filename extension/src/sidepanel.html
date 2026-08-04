@@ -20,43 +20,34 @@
         <div class="status-row">
           <span class="pulse" id="pulse"></span>
           <div>
-            <div class="status-label" id="statusLabel">Waiting for MCP</div>
-            <div class="status-sub" id="statusSub">Follow setup below — takes about 1 minute</div>
+            <div class="status-label" id="statusLabel">Waiting for Cursor MCP</div>
+            <div class="status-sub" id="statusSub">Copy connect config into Cursor — about 30 seconds</div>
           </div>
         </div>
       </section>
 
       <section class="block setup" id="setupBox">
-        <h2>First-time setup</h2>
+        <h2>Connect Cursor</h2>
         <ol class="steps">
           <li>
-            <strong>Create your bridge token</strong> in Terminal:
-            <pre class="cmd" id="setupCmd">npx -y @perfect/mcp setup</pre>
-            <button type="button" class="btn sm" id="copySetupCmd">Copy command</button>
-            <p class="hint">Building from GitHub instead:
-              <code>node packages/mcp-server/dist/cli.js setup</code>
-            </p>
+            <strong>Copy connect for Cursor</strong> (includes your bridge token in MCP env — generated here automatically).
+            <div class="row wrap" style="margin-top: 8px">
+              <button type="button" class="btn primary sm" id="copyConnect">Copy connect for Cursor</button>
+              <button type="button" class="btn sm" id="copyPrompt">Copy chat prompt</button>
+            </div>
           </li>
           <li>
-            <strong>Copy the token</strong> the command prints (also in
-            <code>~/.perfect/token.txt</code>), paste below, click <strong>Link</strong>.
+            Paste into <code>~/.cursor/mcp.json</code> (merge under <code>mcpServers</code>),
+            <em>or</em> paste the chat prompt in Cursor and let it merge for you.
           </li>
           <li>
-            <strong>Add Perfect to Cursor MCP</strong> (Settings → MCP), or click
-            <strong>Copy Cursor MCP config</strong> and merge into
-            <code>~/.cursor/mcp.json</code>, then enable the server.
+            Enable the <strong>perfect</strong> MCP in Cursor Settings → MCP. This panel becomes
+            <strong>Linked to Cursor</strong>.
           </li>
         </ol>
-        <p class="hint">The token is a local secret so only your Cursor can drive Chrome — not a Cursor account password.</p>
-      </section>
-
-      <section class="block">
-        <label class="field-label" for="token">Bridge token</label>
-        <div class="row">
-          <input id="token" type="password" placeholder="Paste token from: perfect setup" autocomplete="off" />
-          <button type="button" id="saveToken" class="btn primary">Link</button>
-        </div>
-        <p class="hint" id="tokenHint">No token yet? Run setup in step 1 first.</p>
+        <p class="hint">
+          Token stays local. Anyone with your mcp.json can drive this bridge — same class of risk as a local API key.
+        </p>
       </section>
 
       <section class="block">
@@ -89,8 +80,17 @@
       </section>
 
       <section class="block">
-        <button type="button" class="btn block" id="copyConfig">Copy Cursor MCP config</button>
-        <button type="button" class="btn block ghost" id="reconnect">Reconnect</button>
+        <button type="button" class="btn block" id="reconnect">Reconnect</button>
+        <details class="advanced">
+          <summary>Advanced</summary>
+          <p class="hint">Bridge token is hidden. Regenerating disconnects Cursor until you copy connect again.</p>
+          <div class="row">
+            <input id="token" type="password" readonly autocomplete="off" aria-label="Bridge token (hidden)" />
+          </div>
+          <button type="button" class="btn block danger" id="regenToken">Regenerate token</button>
+          <label class="field-label" for="devServerPath" style="margin-top:10px">Local server.js path (optional, for git builds)</label>
+          <input id="devServerPath" type="text" placeholder="/path/to/packages/mcp-server/dist/server.js" autocomplete="off" />
+        </details>
       </section>
 
       <footer class="foot">

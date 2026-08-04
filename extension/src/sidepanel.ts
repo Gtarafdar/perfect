@@ -1,7 +1,10 @@
+import { buildChatPrompt, buildConnectJson } from "./connect-snippet.js";
+
 type State = {
   linked: boolean;
   settings: {
     token: string;
+    wsPort: number;
     mode: string;
     actionLog: Array<{ ts: number; tool: string; summary: string }>;
     skipConfirmed?: boolean;
@@ -24,31 +27,45 @@ const permissionBox = document.getElementById("permissionBox")!;
 const permSummary = document.getElementById("permSummary")!;
 const permMeta = document.getElementById("permMeta")!;
 const setupBox = document.getElementById("setupBox")!;
-const tokenHint = document.getElementById("tokenHint")!;
+const devServerPath = document.getElementById("devServerPath") as HTMLInputElement;
+
+let cached: State | null = null;
+
+function snippetOpts(state: State) {
+  const path = devServerPath.value.trim();
+  if (path) {
+    return {
+      token: state.settings.token,
+      wsPort: state.settings.wsPort || 17321,
+      mode: "node" as const,
+      serverPath: path,
+    };
+  }
+  return {
+    token: state.settings.token,
+    wsPort: state.settings.wsPort || 17321,
+    mode: "npx" as const,
+  };
+}
 
 async function refresh(): Promise<void> {
   const state = (await chrome.runtime.sendMessage({
     type: "perfect_get_state",
   })) as State;
+  cached = state;
   render(state);
 }
 
 function render(state: State): void {
   statusCard.classList.toggle("linked", state.linked);
-  statusLabel.textContent = state.linked ? "Linked to Cursor" : "Waiting for MCP";
+  statusLabel.textContent = state.linked ? "Linked to Cursor" : "Waiting for Cursor MCP";
   statusSub.textContent = state.linked
     ? "Bridge live · actions appear below"
-    : "Run setup → paste token → enable Perfect MCP in Cursor";
+    : "Copy connect → enable Perfect MCP in Cursor";
 
-  const hasToken = Boolean(state.settings.token || tokenInput.value.trim());
   setupBox.hidden = state.linked;
-  tokenHint.textContent = hasToken
-    ? "Token saved. Enable Perfect MCP in Cursor, then click Reconnect if needed."
-    : "No token yet? Run setup in step 1 first.";
+  tokenInput.value = state.settings.token ? "••••••••••••••••" : "";
 
-  if (state.settings.token && !tokenInput.value) {
-    tokenInput.value = state.settings.token;
-  }
   modeSelect.value = state.settings.mode || "manual";
   ticker.innerHTML = "";
   for (const row of state.settings.actionLog ?? []) {
@@ -65,24 +82,36 @@ function render(state: State): void {
   }
 }
 
-document.getElementById("copySetupCmd")!.addEventListener("click", async () => {
-  const cmd = document.getElementById("setupCmd")!.textContent ?? "";
-  await navigator.clipboard.writeText(cmd);
-  statusSub.textContent = "Setup command copied — paste in Terminal";
-});
-
-document.getElementById("saveToken")!.addEventListener("click", async () => {
-  const token = tokenInput.value.trim();
-  if (!token) {
-    statusSub.textContent = "Paste the token from `perfect setup` first";
+document.getElementById("copyConnect")!.addEventListener("click", async () => {
+  if (!cached?.settings.token) await refresh();
+  if (!cached?.settings.token) {
+    statusSub.textContent = "Token not ready — reopen the panel";
     return;
   }
-  await chrome.runtime.sendMessage({
-    type: "perfect_save_settings",
-    partial: { token },
-  });
-  await chrome.runtime.sendMessage({ type: "perfect_reconnect" });
+  const text = buildConnectJson(snippetOpts(cached));
+  await navigator.clipboard.writeText(text);
+  statusSub.textContent = "Connect JSON copied — merge into ~/.cursor/mcp.json";
+});
+
+document.getElementById("copyPrompt")!.addEventListener("click", async () => {
+  if (!cached?.settings.token) await refresh();
+  if (!cached?.settings.token) {
+    statusSub.textContent = "Token not ready — reopen the panel";
+    return;
+  }
+  const text = buildChatPrompt(snippetOpts(cached));
+  await navigator.clipboard.writeText(text);
+  statusSub.textContent = "Chat prompt copied — paste into Cursor";
+});
+
+document.getElementById("regenToken")!.addEventListener("click", async () => {
+  const ok = confirm(
+    "Regenerate bridge token? Cursor will disconnect until you copy connect again and update mcp.json.",
+  );
+  if (!ok) return;
+  await chrome.runtime.sendMessage({ type: "perfect_regenerate_token" });
   await refresh();
+  statusSub.textContent = "New token minted — copy connect for Cursor again";
 });
 
 modeSelect.addEventListener("change", async () => {
@@ -139,19 +168,6 @@ document.getElementById("stopBtn")!.addEventListener("click", () => {
 document.getElementById("reconnect")!.addEventListener("click", async () => {
   await chrome.runtime.sendMessage({ type: "perfect_reconnect" });
   await refresh();
-});
-
-document.getElementById("copyConfig")!.addEventListener("click", async () => {
-  const snippet = `{
-  "mcpServers": {
-    "perfect": {
-      "command": "npx",
-      "args": ["-y", "@perfect/mcp"]
-    }
-  }
-}`;
-  await navigator.clipboard.writeText(snippet);
-  statusSub.textContent = "MCP config copied — merge into ~/.cursor/mcp.json";
 });
 
 chrome.runtime.onMessage.addListener((msg) => {

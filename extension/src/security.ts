@@ -1,5 +1,7 @@
 /** Extension-local security (mirrors @perfect/protocol; bundled separately). */
 
+import { assertTokenHex, mintTokenHex } from "./connect-snippet.js";
+
 export type PermissionMode = "manual" | "auto" | "skip";
 export type RiskLevel = "low" | "protected" | "prohibited";
 export type PermissionDecision =
@@ -142,4 +144,18 @@ export async function saveSettings(partial: Partial<Settings>): Promise<Settings
   const next = { ...cur, ...partial };
   await chrome.storage.local.set({ settings: next });
   return next;
+}
+
+/** Ensure a CSPRNG bridge token exists (extension-first pairing). Never logs the token. */
+export async function ensureToken(): Promise<Settings> {
+  const cur = await loadSettings();
+  if (assertTokenHex(cur.token)) return cur;
+  const token = mintTokenHex();
+  return saveSettings({ token, wsPort: cur.wsPort || 17321 });
+}
+
+/** Rotate token after user confirm — old MCP env stops working until re-copy. */
+export async function regenerateToken(): Promise<Settings> {
+  const token = mintTokenHex();
+  return saveSettings({ token });
 }

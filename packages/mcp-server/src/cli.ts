@@ -212,10 +212,9 @@ switch (cmd) {
 See docs/demo-script.md
 
 Quick:
-  1. perfect setup
-  2. Paste token in side panel → Link
-  3. Enable Perfect MCP in Cursor
-  4. Ask Cursor to open example.com via Perfect
+  1. Load extension → open side panel (token auto-minted)
+  2. Copy connect for Cursor → enable Perfect MCP
+  3. Ask Cursor to open example.com via Perfect
 `);
     break;
   case "help":
