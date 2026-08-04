@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Perfect E2E — Modal</title>
+  <style>
+    body { font-family: system-ui; margin: 40px; }
+    dialog { padding: 24px; border: 1px solid #333; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Modal demo</h1>
+  <button id="open-modal">Open modal</button>
+  <dialog id="dlg">
+    <p>Hello from dialog</p>
+    <button id="close-modal">Close</button>
+  </dialog>
+  <script>
+    const dlg = document.getElementById('dlg');
+    document.getElementById('open-modal').onclick = () => dlg.showModal();
+    document.getElementById('close-modal').onclick = () => dlg.close();
+  </script>
+</body>
+</html>

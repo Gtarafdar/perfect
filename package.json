@@ -17,6 +17,8 @@
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
+    "test:e2e": "playwright test -c tests/e2e/playwright.config.cjs",
+    "test:e2e:report": "playwright test -c tests/e2e/playwright.config.cjs && echo 'Report → docs/capability-report.md'",
     "test:watch": "vitest",
     "lint": "tsc -p tsconfig.json --noEmit",
     "pack:extension": "npm run build -w @perfect/extension && node scripts/pack-extension.mjs",
@@ -28,7 +30,9 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/node": "^22.13.10",
+    "playwright": "^1.62.1",
     "typescript": "^5.8.2",
     "vitest": "^3.0.9"
   },

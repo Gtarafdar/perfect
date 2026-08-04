@@ -42,9 +42,10 @@ Perfect intentionally mirrors Claude’s public permission model:
 
 ## Residual risks
 
-- Screenshots and snapshots can include sensitive on-screen data and flow into Cursor’s context.
+- Screenshots, **annotated screenshots**, snapshots, extracts, and **console reads** can include sensitive on-screen or logged data and flow into Cursor’s context.
 - Heuristics can false-negative. Never use Skip mode on important accounts.
 - Prefer a separate Chrome profile without banking/email when experimenting.
+- Tab close/focus only targets the Perfect claimed group by default — still treat close carefully.
 - This project is **not** affiliated with Cursor, Anysphere, or Anthropic.
 
 ## Reporting

@@ -131,14 +131,28 @@ export function classifyAction(ctx: ActionContext): Classification {
     return { risk: "protected", reasons };
   }
 
-  if (PROTECTED_LABEL.test(blob) || ctx.tool === "browser_screenshot") {
-    if (PROTECTED_LABEL.test(blob)) reasons.push("protected action label");
+  if (
+    ctx.tool === "browser_screenshot" ||
+    ctx.tool === "browser_console"
+  ) {
+    reasons.push(
+      ctx.tool === "browser_screenshot"
+        ? "screenshot may include sensitive on-screen data"
+        : "console may include sensitive logged data",
+    );
+    return { risk: "protected", reasons };
+  }
+
+  if (PROTECTED_LABEL.test(blob)) {
+    reasons.push("protected action label");
   }
 
   if (
     ctx.tool === "browser_fill" ||
     ctx.tool === "browser_type" ||
-    ctx.tool === "browser_click"
+    ctx.tool === "browser_click" ||
+    ctx.tool === "browser_hover" ||
+    ctx.tool === "browser_select"
   ) {
     if (PROTECTED_LABEL.test(blob)) {
       return { risk: "protected", reasons };
@@ -164,5 +178,9 @@ export function scanForInjection(pageTextSample: string): string[] {
 }
 
 export function requiresSitePermission(tool: ToolName): boolean {
-  return tool !== "browser_status" && tool !== "browser_stop" && tool !== "browser_tabs";
+  return (
+    tool !== "browser_status" &&
+    tool !== "browser_stop" &&
+    tool !== "browser_tabs"
+  );
 }

@@ -45,6 +45,38 @@ describe("classifyAction", () => {
     });
     expect(r.risk).toBe("low");
   });
+
+  it("protects screenshots", () => {
+    const r = classifyAction({
+      tool: "browser_screenshot",
+      url: "https://example.com",
+    });
+    expect(r.risk).toBe("protected");
+  });
+
+  it("protects console reads", () => {
+    const r = classifyAction({
+      tool: "browser_console",
+      url: "https://example.com",
+    });
+    expect(r.risk).toBe("protected");
+  });
+
+  it("allows hover and extract as low", () => {
+    expect(
+      classifyAction({
+        tool: "browser_hover",
+        url: "https://example.com",
+        label: "Menu",
+      }).risk,
+    ).toBe("low");
+    expect(
+      classifyAction({
+        tool: "browser_extract",
+        url: "https://example.com",
+      }).risk,
+    ).toBe("low");
+  });
 });
 
 describe("scanForInjection", () => {

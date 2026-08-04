@@ -1,18 +1,31 @@
 import * as cdp from "./cdp.js";
 import * as tabs from "./tabs.js";
-import { getRef, snapshot, focusRef, readRefValue, nativeFillRef, resolveTarget } from "./snapshot.js";
+import {
+  getRef,
+  snapshot,
+  focusRef,
+  hoverRef,
+  nativeFillRef,
+  resolveTarget,
+  selectRef,
+  extractFromPage,
+  waitForCondition,
+  annotateRefs,
+  clearAnnotations,
+  type SnapshotMode,
+} from "./snapshot.js";
 import {
   classify,
   hostFromUrl,
   loadSettings,
   saveSettings,
   siteAllowed,
+  scanInjection,
   type PermissionDecision,
   type RiskLevel,
   type Settings,
 } from "./security.js";
 
-// Drive the on-page cursor overlay from CDP mouse moves
 cdp.setCursorSink((tabId, x, y, visible) => {
   void showCursor(tabId, x, y, visible);
 });
@@ -67,7 +80,6 @@ export function getPendingPermission() {
 
 async function pushLog(tool: string, summary: string, ok = true): Promise<void> {
   if (ok) {
-    // Success: wipe HUD history so it doesn't grow forever
     await saveSettings({ actionLog: [] });
     void chrome.runtime
       .sendMessage({
@@ -145,20 +157,15 @@ async function gate(
     return "deny";
   }
 
-  // Skip: no prompts for low risk (still confirm protected; prohibited already returned)
   if (settings.mode === "skip" && settings.skipConfirmed && risk === "low") {
     await audit(tool, url, "allow_once", summary);
     return "allow_once";
   }
 
-  // Always-allow site + low risk → no prompt in any mode
   if (risk === "low" && host && settings.alwaysAllowHosts.includes(host)) {
     await audit(tool, url, "always_allow_site", summary);
     return "allow_once";
   }
-
-  // Auto: allow low-risk on first visit only after one grant; otherwise prompt
-  // (falls through to prompt for new hosts and protected actions)
 
   const decision = await waitForPermission({
     id: `${Date.now()}`,
@@ -190,10 +197,8 @@ export async function runTool(
     return { ok: true, result: { stopped: true } };
   }
 
-  // Stop is a one-shot cancel — next real tool resumes work
   if (stopped) clearStop();
 
-  // Touch storage every tool so MV3 doesn't kill the SW mid-fill
   void chrome.storage.session.set({ perfectHeartbeat: Date.now() }).catch(() => {});
 
   const settings = await loadSettings();
@@ -249,7 +254,6 @@ export async function runTool(
         if (decision === "deny" || decision === "prohibited") {
           return { ok: false, error: decision === "prohibited" ? "Prohibited" : "Denied", decision, risk };
         }
-        // Reuse claimed tab by default — only spawn a new tab when newTab=true
         const tabId = await tabs.navigateClaimed(url, {
           tabId: args.tabId as number | undefined,
           newTab: !!args.newTab,
@@ -280,7 +284,10 @@ export async function runTool(
         if (decision === "deny" || decision === "prohibited") {
           return { ok: false, error: "Denied", decision };
         }
-        const snap = await snapshot(tabId);
+        const modeRaw = String(args.mode ?? "compact");
+        const mode: SnapshotMode =
+          modeRaw === "full" || modeRaw === "text" ? modeRaw : "compact";
+        const snap = await snapshot(tabId, { mode });
         if (snap.injectionFlags.length) {
           const injDecision = await gate(
             tool,
@@ -301,25 +308,31 @@ export async function runTool(
         }
         await pushLog(tool, `snapshot ${snap.nodes.length} nodes`);
         await showHud(tabId, true);
-        // Compact payload → lower Cursor token use
         const fields = snap.nodes
           .filter((n) => n.editable)
           .map((n) =>
-            n.value
-              ? `${n.ref}\t${n.name}\t=${n.value}`
-              : `${n.ref}\t${n.name}`,
+            n.value ? `${n.ref}\t${n.name}\t=${n.value}` : `${n.ref}\t${n.name}`,
           );
         const actions = snap.nodes
           .filter((n) => !n.editable && n.clickable)
-          .slice(0, 40)
-          .map((n) => `${n.ref}\t${n.name}`);
+          .slice(0, mode === "full" ? 80 : 40)
+          .map((n) =>
+            n.frame
+              ? `${n.ref}\t${n.name}\tframe:${n.frame}`
+              : n.dialog
+                ? `${n.ref}\t${n.name}\tdialog`
+                : `${n.ref}\t${n.name}`,
+          );
         return {
           ok: true,
           result: {
             tabId: snap.tabId,
             url: snap.url,
+            mode: snap.mode,
             fields,
             actions,
+            frames: snap.frames,
+            text: snap.text,
             inj: snap.injectionFlags,
           },
           decision,
@@ -348,7 +361,48 @@ export async function runTool(
           };
         }
         await pushLog(tool, `click ${label} (${reasons.join(",")})`);
+        return { ok: true, result: { tabId, ref, label, frame: info.frame }, decision, risk };
+      }
+      case "browser_hover": {
+        const tabId = await tabs.resolveTabId(args.tabId as number | undefined);
+        const tab = await chrome.tabs.get(tabId);
+        const ref = String(args.ref);
+        const info = getRef(ref);
+        const label = String(args.label ?? info?.name ?? ref);
+        const { risk } = classify({ tool, url: tab.url ?? "", label });
+        const decision = await gate(tool, tab.url ?? "", `Hover ${label}`, risk, settings);
+        if (decision === "deny" || decision === "prohibited") {
+          return { ok: false, error: "Denied", decision, risk };
+        }
+        if (!info) return { ok: false, error: `Unknown ref ${ref}. Take a new snapshot.` };
+        await showHud(tabId, true);
+        const ok = await hoverRef(tabId, ref);
+        if (!ok) {
+          return { ok: false, error: `Could not hover ${label}`, decision, risk };
+        }
+        await pushLog(tool, `hover ${label}`);
         return { ok: true, result: { tabId, ref, label }, decision, risk };
+      }
+      case "browser_select": {
+        const tabId = await tabs.resolveTabId(args.tabId as number | undefined);
+        const tab = await chrome.tabs.get(tabId);
+        const ref = String(args.ref);
+        const value = String(args.value ?? "");
+        const info = getRef(ref);
+        const label = String(args.label ?? info?.name ?? ref);
+        const { risk } = classify({ tool, url: tab.url ?? "", label, text: value });
+        const decision = await gate(tool, tab.url ?? "", `Select ${label}`, risk, settings);
+        if (decision === "deny" || decision === "prohibited") {
+          return { ok: false, error: "Denied", decision, risk };
+        }
+        if (!info) return { ok: false, error: `Unknown ref ${ref}. Take a new snapshot.` };
+        await showHud(tabId, true);
+        const ok = await selectRef(tabId, ref, value);
+        if (!ok) {
+          return { ok: false, error: `Select failed on ${label}`, decision, risk };
+        }
+        await pushLog(tool, `select ${label}`);
+        return { ok: true, result: { tabId, ref, value, label }, decision, risk };
       }
       case "browser_fill":
       case "browser_type": {
@@ -377,7 +431,6 @@ export async function runTool(
           return { ok: false, error: "Denied", decision, risk };
         }
         await showHud(tabId, true);
-        // Keep SW alive during fill (MV3 otherwise dies mid-tool)
         void chrome.storage.session.set({ perfectHeartbeat: Date.now() });
 
         if (ref) {
@@ -393,8 +446,6 @@ export async function runTool(
           }
         }
 
-        // Prefer human typing in ONE in-page script (keeps SW alive).
-        // nativeFill is fallback only if typing doesn't stick.
         void chrome.storage.session.set({ perfectHeartbeat: Date.now() });
         let filled = false;
         if (ref) {
@@ -489,15 +540,152 @@ export async function runTool(
         }
         await showHud(tabId, false);
         await showCursor(tabId, 0, 0, false);
-        const pngBase64 = await cdp.screenshotPng(tabId);
+
+        let captions: string[] | undefined;
+        const refsArg = args.refs;
+        if (Array.isArray(refsArg) && refsArg.length) {
+          const labels = Array.isArray(args.labels) ? (args.labels as string[]) : [];
+          captions = await annotateRefs(
+            tabId,
+            refsArg.map((r, i) => ({
+              ref: String(r),
+              label: labels[i] != null ? String(labels[i]) : undefined,
+            })),
+          );
+          await cdp.delay(80);
+        }
+
+        const clip =
+          args.clip && typeof args.clip === "object"
+            ? (args.clip as {
+                x: number;
+                y: number;
+                width: number;
+                height: number;
+              })
+            : undefined;
+        const pngBase64 = await cdp.screenshotPng(tabId, {
+          fullPage: !!args.fullPage,
+          clip,
+        });
+
+        if (captions) await clearAnnotations(tabId);
+
         await showHud(tabId, true);
-        await pushLog(tool, "screenshot");
-        return { ok: true, result: { pngBase64, mimeType: "image/png", tabId }, decision };
+        await pushLog(tool, captions ? "screenshot annotated" : "screenshot");
+        return {
+          ok: true,
+          result: {
+            pngBase64,
+            mimeType: "image/png",
+            tabId,
+            captions,
+            suggestedFilename: `perfect-${tabId}-${Date.now()}.png`,
+          },
+          decision,
+        };
       }
       case "browser_wait": {
+        if (args.selector || args.urlIncludes) {
+          const tabId = await tabs.resolveTabId(args.tabId as number | undefined);
+          const result = await waitForCondition(tabId, {
+            selector: args.selector ? String(args.selector) : undefined,
+            urlIncludes: args.urlIncludes ? String(args.urlIncludes) : undefined,
+            timeoutMs: Number(args.timeoutMs ?? args.ms ?? 10000),
+          });
+          return {
+            ok: result.ok,
+            result,
+            error: result.ok ? undefined : "Wait timed out",
+          };
+        }
         const ms = Math.min(Number(args.ms ?? 1000), 30000);
         await new Promise((r) => setTimeout(r, ms));
         return { ok: true, result: { waited: ms } };
+      }
+      case "browser_extract": {
+        const tabId = await tabs.resolveTabId(args.tabId as number | undefined);
+        const tab = await chrome.tabs.get(tabId);
+        const decision = await gate(tool, tab.url ?? "", "extract", "low", settings);
+        if (decision === "deny" || decision === "prohibited") {
+          return { ok: false, error: "Denied", decision };
+        }
+        const data = await extractFromPage(tabId, {
+          selector: args.selector ? String(args.selector) : undefined,
+          links: args.links !== false,
+          tables: !!args.tables,
+          attrs: Array.isArray(args.attrs) ? (args.attrs as string[]) : undefined,
+        });
+        const inj = scanInjection(data.textSample);
+        if (inj.length) {
+          const injDecision = await gate(
+            tool,
+            tab.url ?? "",
+            `Injection heuristic on extract: ${inj.join("; ")}`,
+            "protected",
+            settings,
+          );
+          if (injDecision === "deny" || injDecision === "prohibited") {
+            return {
+              ok: false,
+              error: "Blocked due to possible prompt injection in page text",
+              decision: injDecision,
+              risk: "protected",
+            };
+          }
+        }
+        await pushLog(tool, `extract ${data.items.length} items`);
+        return {
+          ok: true,
+          result: {
+            tabId,
+            items: data.items.slice(0, 150),
+            links: data.links?.slice(0, 100),
+            tables: data.tables,
+            inj,
+          },
+          decision,
+        };
+      }
+      case "browser_console": {
+        const tabId = await tabs.resolveTabId(args.tabId as number | undefined);
+        const tab = await chrome.tabs.get(tabId);
+        const { risk } = classify({ tool, url: tab.url ?? "" });
+        const decision = await gate(tool, tab.url ?? "", "console", risk, settings);
+        if (decision === "deny" || decision === "prohibited") {
+          return { ok: false, error: "Denied", decision, risk };
+        }
+        await cdp.enableConsole(tabId);
+        try {
+          await cdp.evaluate(tabId, "void 0");
+        } catch {
+          /* ignore */
+        }
+        const messages = cdp.getConsole(tabId, Number(args.limit ?? 40));
+        await pushLog(tool, `console ${messages.length}`);
+        return { ok: true, result: { tabId, messages }, decision, risk };
+      }
+      case "browser_tab_focus": {
+        const tabId = await tabs.resolveTabId(args.tabId as number | undefined);
+        const tab = await chrome.tabs.get(tabId);
+        const decision = await gate(tool, tab.url ?? "", "tab focus", "low", settings);
+        if (decision === "deny" || decision === "prohibited") {
+          return { ok: false, error: "Denied", decision };
+        }
+        await tabs.focusClaimedTab(tabId);
+        await pushLog(tool, `focus ${tabId}`);
+        return { ok: true, result: { tabId } };
+      }
+      case "browser_tab_close": {
+        const tabId = await tabs.resolveTabId(args.tabId as number | undefined);
+        const tab = await chrome.tabs.get(tabId);
+        const decision = await gate(tool, tab.url ?? "", "tab close", "low", settings);
+        if (decision === "deny" || decision === "prohibited") {
+          return { ok: false, error: "Denied", decision };
+        }
+        await tabs.closeClaimedTab(tabId);
+        await pushLog(tool, `close ${tabId}`);
+        return { ok: true, result: { closed: tabId } };
       }
       case "browser_evaluate": {
         const tabId = await tabs.resolveTabId(args.tabId as number | undefined);
@@ -519,11 +707,6 @@ export async function runTool(
     const err = e instanceof Error ? e.message : String(e);
     await pushLog(tool, err, false);
     return { ok: false, error: err };
-  } finally {
-    // Detach after each tool to reduce debugger banner time
-    if (tool !== "browser_status" && tool !== "browser_stop") {
-      /* keep attached briefly for multi-step; detachAll on stop/disconnect */
-    }
   }
 }
 
@@ -555,7 +738,6 @@ async function showCursor(
   }
 }
 
-/** Quietly inject content script if the tab never got it (no reload). */
 async function ensureContent(tabId: number): Promise<void> {
   try {
     await chrome.tabs.sendMessage(tabId, { type: "perfect_ping" });

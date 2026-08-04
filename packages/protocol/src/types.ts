@@ -26,7 +26,13 @@ export type ToolName =
   | "browser_evaluate"
   | "browser_propose_plan"
   | "browser_stop"
-  | "browser_status";
+  | "browser_status"
+  | "browser_extract"
+  | "browser_console"
+  | "browser_hover"
+  | "browser_select"
+  | "browser_tab_close"
+  | "browser_tab_focus";
 
 export type PermissionDecision =
   | "allow_once"

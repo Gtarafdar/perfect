@@ -85,13 +85,73 @@ export async function send<T = unknown>(
   }
 }
 
-export async function screenshotPng(tabId: number): Promise<string> {
+export async function screenshotPng(
+  tabId: number,
+  opts?: { fullPage?: boolean; clip?: { x: number; y: number; width: number; height: number; scale?: number } },
+): Promise<string> {
   await attach(tabId);
-  const result = await send<{ data: string }>(tabId, "Page.captureScreenshot", {
+  const params: Record<string, unknown> = {
     format: "png",
     fromSurface: true,
-  });
+  };
+  if (opts?.fullPage) params.captureBeyondViewport = true;
+  if (opts?.clip) params.clip = opts.clip;
+  const result = await send<{ data: string }>(tabId, "Page.captureScreenshot", params);
   return result.data;
+}
+
+const consoleBuf = new Map<number, Array<{ type: string; text: string; ts: number }>>();
+const consoleListening = new Set<number>();
+
+function pushConsole(tabId: number, type: string, text: string): void {
+  const redacted = text
+    .replace(/(api[_-]?key|token|password|secret)\s*[:=]\s*\S+/gi, "$1=[REDACTED]")
+    .slice(0, 500);
+  const list = consoleBuf.get(tabId) ?? [];
+  list.push({ type, text: redacted, ts: Date.now() });
+  consoleBuf.set(tabId, list.slice(-80));
+}
+
+/** Attach and start collecting console messages (read-only). */
+export async function enableConsole(tabId: number): Promise<void> {
+  await attach(tabId);
+  if (consoleListening.has(tabId)) return;
+  consoleListening.add(tabId);
+  // Chrome MV3: listen via debugger event in background — register once globally
+  ensureDebuggerConsoleHook();
+}
+
+export function getConsole(tabId: number, limit = 40): Array<{ type: string; text: string; ts: number }> {
+  const list = consoleBuf.get(tabId) ?? [];
+  return list.slice(-Math.min(Math.max(limit, 1), 80));
+}
+
+let debuggerHooked = false;
+function ensureDebuggerConsoleHook(): void {
+  if (debuggerHooked) return;
+  debuggerHooked = true;
+  chrome.debugger.onEvent.addListener((source, method, params) => {
+    const tabId = source.tabId;
+    if (tabId == null) return;
+    if (method === "Runtime.consoleAPICalled" && params) {
+      const p = params as {
+        type?: string;
+        args?: Array<{ value?: unknown; description?: string }>;
+      };
+      const parts = (p.args ?? []).map((a) =>
+        a.value != null ? String(a.value) : a.description ?? "",
+      );
+      pushConsole(tabId, p.type ?? "log", parts.join(" "));
+    }
+    if (method === "Runtime.exceptionThrown" && params) {
+      const p = params as { exceptionDetails?: { text?: string; exception?: { description?: string } } };
+      const text =
+        p.exceptionDetails?.exception?.description ||
+        p.exceptionDetails?.text ||
+        "exception";
+      pushConsole(tabId, "error", text);
+    }
+  });
 }
 
 function notifyCursor(tabId: number, x: number, y: number, visible: boolean): void {
@@ -168,9 +228,26 @@ export async function typeIntoRef(
   return runInPage(
     tabId,
     async (r: string, value: string) => {
-      const el = document.querySelector(
-        `[data-perfect-ref="${r}"]`,
-      ) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+      const find = (ref: string) => {
+        let el = document.querySelector(
+          `[data-perfect-ref="${ref}"]`,
+        ) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+        if (el) return el;
+        for (const iframe of document.querySelectorAll("iframe")) {
+          try {
+            const doc = iframe.contentDocument;
+            if (!doc) continue;
+            el = doc.querySelector(
+              `[data-perfect-ref="${ref}"]`,
+            ) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+            if (el) return el;
+          } catch {
+            /* cross-origin */
+          }
+        }
+        return null;
+      };
+      const el = find(r);
       if (!el) return false;
       el.focus();
       const tag = el.tagName;

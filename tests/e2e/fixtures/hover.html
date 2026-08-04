@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Perfect E2E — Hover</title>
+  <style>
+    body { font-family: system-ui; margin: 40px; }
+    .menu { display: inline-block; position: relative; }
+    .trigger { padding: 10px 16px; background: #0a0b0a; color: #b8ff3c; border: 0; }
+    .panel { display: none; position: absolute; top: 100%; left: 0; background: #fff; border: 1px solid #ccc; min-width: 160px; }
+    .menu:hover .panel, .menu.open .panel { display: block; }
+    .panel a { display: block; padding: 8px 12px; }
+  </style>
+</head>
+<body>
+  <h1>Hover menu</h1>
+  <div class="menu" id="menu">
+    <button class="trigger" id="menu-trigger">Products</button>
+    <div class="panel" id="menu-panel" role="menu">
+      <a href="#a" role="menuitem">Alpha</a>
+      <a href="#b" role="menuitem">Beta</a>
+    </div>
+  </div>
+  <script>
+    const menu = document.getElementById('menu');
+    const trigger = document.getElementById('menu-trigger');
+    trigger.addEventListener('mouseenter', () => menu.classList.add('open'));
+    trigger.addEventListener('pointerenter', () => menu.classList.add('open'));
+    menu.addEventListener('mouseleave', () => menu.classList.remove('open'));
+  </script>
+</body>
+</html>

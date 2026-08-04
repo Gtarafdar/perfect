@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Iframe child</title>
+</head>
+<body>
+  <h2>Inside iframe</h2>
+  <label>Child name <input id="child-name" name="child-name" /></label>
+  <button id="child-btn">Child button</button>
+  <p id="child-status">idle</p>
+  <script>
+    document.getElementById('child-btn').onclick = () => {
+      document.getElementById('child-status').textContent = 'clicked';
+    };
+  </script>
+</body>
+</html>

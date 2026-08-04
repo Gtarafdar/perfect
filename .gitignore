@@ -12,3 +12,6 @@ packages/*/dist/
 .env
 .env.*
 !.env.example
+test-results/
+playwright-report/
+*.tsbuildinfo

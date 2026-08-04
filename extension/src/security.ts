@@ -100,6 +100,16 @@ export function classify(opts: {
       return { risk: "prohibited", reasons: ["cookie/storage access blocked"] };
     }
   }
+  if (opts.tool === "browser_screenshot" || opts.tool === "browser_console") {
+    return {
+      risk: "protected",
+      reasons: [
+        opts.tool === "browser_screenshot"
+          ? "screenshot may include sensitive on-screen data"
+          : "console may include sensitive logged data",
+      ],
+    };
+  }
   if (PROHIBITED.test(blob)) {
     return { risk: "prohibited", reasons: ["prohibited action label"] };
   }

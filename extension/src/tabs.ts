@@ -161,6 +161,21 @@ export function releaseTab(tabId: number): void {
   claimed.delete(tabId);
 }
 
+/** Focus a claimed tab (activate). */
+export async function focusClaimedTab(tabId: number): Promise<void> {
+  if (!claimed.has(tabId)) await claimTab(tabId);
+  await chrome.tabs.update(tabId, { active: true });
+}
+
+/** Close a claimed tab only (security: no closing arbitrary tabs by default). */
+export async function closeClaimedTab(tabId: number): Promise<void> {
+  if (!claimed.has(tabId)) {
+    throw new Error("Tab is not in the Perfect group — claim it first or pass a claimed tabId");
+  }
+  releaseTab(tabId);
+  await chrome.tabs.remove(tabId);
+}
+
 chrome.tabs.onRemoved.addListener((tabId) => {
   claimed.delete(tabId);
 });

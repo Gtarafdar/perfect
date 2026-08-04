@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Perfect E2E — Form</title>
+  <style>
+    body { font-family: system-ui; max-width: 480px; margin: 40px auto; }
+    label { display: block; margin-top: 12px; }
+    input, select { width: 100%; padding: 8px; }
+    button { margin-top: 16px; padding: 10px 16px; }
+  </style>
+</head>
+<body>
+  <h1>Contact form</h1>
+  <form id="contact">
+    <label>Name <input id="name" name="name" type="text" /></label>
+    <label>Email <input id="email" name="email" type="email" /></label>
+    <label>Country
+      <select id="country" name="country">
+        <option value="">—</option>
+        <option value="us">United States</option>
+        <option value="bd">Bangladesh</option>
+      </select>
+    </label>
+    <button type="submit" id="submit">Submit</button>
+  </form>
+  <p id="result" hidden>Submitted</p>
+  <script>
+    document.getElementById('contact').addEventListener('submit', (e) => {
+      e.preventDefault();
+      document.getElementById('result').hidden = false;
+    });
+  </script>
+</body>
+</html>

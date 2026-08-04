@@ -33,7 +33,14 @@ cpSync(join(root, "src/sidepanel.html"), join(dist, "sidepanel.html"));
 cpSync(join(root, "src/sidepanel.css"), join(dist, "sidepanel.css"));
 cpSync(join(root, "manifest.json"), join(dist, "manifest.json"));
 
-for (const name of ["icon16.svg", "icon48.svg", "icon128.svg"]) {
+for (const name of [
+  "icon16.svg",
+  "icon48.svg",
+  "icon128.svg",
+  "icon16.png",
+  "icon48.png",
+  "icon128.png",
+]) {
   cpSync(join(root, "icons", name), join(dist, "icons", name));
 }
 

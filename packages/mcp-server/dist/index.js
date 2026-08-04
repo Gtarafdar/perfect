@@ -695,15 +695,22 @@ var init_server = __esm({
       },
       {
         name: "browser_snapshot",
-        description: "Compact page map: fields[] and actions[] as ref\\tlabel. One snapshot then many fills. Reuse tabId. Avoid screenshots unless needed (expensive).",
+        description: "Page map: fields[] and actions[] as ref\\tlabel. Modes: compact (default), full (more roles/dialogs), text (adds readable body). Pierces same-origin iframes (frame:fN on actions). Prefer over evaluate for reading pages.",
         inputSchema: {
           type: "object",
-          properties: { tabId: { type: "number" } }
+          properties: {
+            tabId: { type: "number" },
+            mode: {
+              type: "string",
+              enum: ["compact", "full", "text"],
+              description: "compact=token-lean; full=more elements; text=include page text"
+            }
+          }
         }
       },
       {
         name: "browser_click",
-        description: "Cursor moves to ref and clicks. Pass label when known.",
+        description: "Visible cursor moves to ref and clicks (works in same-origin iframes after snapshot). Pass label when known.",
         inputSchema: {
           type: "object",
           properties: {
@@ -712,6 +719,33 @@ var init_server = __esm({
             label: { type: "string", description: "Visible label for security classification" }
           },
           required: ["ref"]
+        }
+      },
+      {
+        name: "browser_hover",
+        description: "Move visible cursor and hover a ref (open menus, flip boxes, tooltips).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            ref: { type: "string" },
+            tabId: { type: "number" },
+            label: { type: "string" }
+          },
+          required: ["ref"]
+        }
+      },
+      {
+        name: "browser_select",
+        description: "Choose a value on a <select> or similar field by ref.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            ref: { type: "string" },
+            value: { type: "string" },
+            tabId: { type: "number" },
+            label: { type: "string" }
+          },
+          required: ["ref", "value"]
         }
       },
       {
@@ -771,26 +805,84 @@ var init_server = __esm({
       },
       {
         name: "browser_screenshot",
-        description: "Capture a PNG screenshot of the tab. Visible content may include sensitive data.",
+        description: "Capture PNG. Optional refs[] + labels[] draws lime annotations before capture (for docs/bugs). fullPage/clip supported. May include sensitive on-screen data.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tabId: { type: "number" },
+            refs: { type: "array", items: { type: "string" } },
+            labels: { type: "array", items: { type: "string" } },
+            fullPage: { type: "boolean" },
+            clip: {
+              type: "object",
+              properties: {
+                x: { type: "number" },
+                y: { type: "number" },
+                width: { type: "number" },
+                height: { type: "number" }
+              }
+            }
+          }
+        }
+      },
+      {
+        name: "browser_wait",
+        description: "Wait ms, or until selector appears (same-origin iframes included), or urlIncludes matches. Cap 30s.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            ms: { type: "number" },
+            timeoutMs: { type: "number" },
+            selector: { type: "string" },
+            urlIncludes: { type: "string" },
+            tabId: { type: "number" }
+          }
+        }
+      },
+      {
+        name: "browser_extract",
+        description: "Scrape text/attrs/links/tables when site scripts fail. Prefer over evaluate. Never reads cookies/storage.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tabId: { type: "number" },
+            selector: { type: "string", description: "CSS selector (default headings/paragraphs)" },
+            links: { type: "boolean", description: "Include links (default true)" },
+            tables: { type: "boolean", description: "Include table grids" },
+            attrs: { type: "array", items: { type: "string" } }
+          }
+        }
+      },
+      {
+        name: "browser_console",
+        description: "Read recent page console messages (redacted). Protected \u2014 may include sensitive logs.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tabId: { type: "number" },
+            limit: { type: "number" }
+          }
+        }
+      },
+      {
+        name: "browser_tab_focus",
+        description: "Activate a claimed Perfect-group tab.",
         inputSchema: {
           type: "object",
           properties: { tabId: { type: "number" } }
         }
       },
       {
-        name: "browser_wait",
-        description: "Wait for page settle or a number of milliseconds.",
+        name: "browser_tab_close",
+        description: "Close a claimed Perfect-group tab only (will not close arbitrary tabs).",
         inputSchema: {
           type: "object",
-          properties: {
-            ms: { type: "number" },
-            tabId: { type: "number" }
-          }
+          properties: { tabId: { type: "number" } }
         }
       },
       {
         name: "browser_evaluate",
-        description: "Guarded JS evaluate (disabled patterns: cookies/storage). Prefer snapshot/click/fill.",
+        description: "Guarded JS evaluate (disabled patterns: cookies/storage). Prefer snapshot/extract/click/fill.",
         inputSchema: {
           type: "object",
           properties: {
