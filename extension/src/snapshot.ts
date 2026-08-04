@@ -150,9 +150,9 @@ const SNAPSHOT_SCRIPT = `(() => {
   let counter = 0;
 
   const compactSel =
-    'a,button,input,textarea,select,summary,[role="button"],[role="link"],[role="menuitem"],[role="tab"],[role="checkbox"],[role="switch"],[role="option"],[contenteditable="true"],[role="dialog"],dialog,[aria-modal="true"]';
+    'a,button,input,textarea,select,summary,[role="button"],[role="link"],[role="menuitem"],[role="tab"],[role="checkbox"],[role="switch"],[role="option"],[contenteditable="true"],[role="dialog"],dialog,[aria-modal="true"],[draggable="true"]';
   const fullSel =
-    compactSel + ',h1,h2,h3,h4,h5,h6,nav,main,aside,header,footer,[role="heading"],[role="navigation"],[role="main"],label,li';
+    compactSel + ',h1,h2,h3,h4,h5,h6,nav,main,aside,header,footer,[role="heading"],[role="navigation"],[role="main"],label,li,#drop-zone,[data-drop-zone]';
 
   const labelText = (el, doc) => {
     const aria = (el.getAttribute('aria-label') || '').trim();
@@ -456,6 +456,55 @@ export async function hoverRef(tabId: number, ref: string): Promise<boolean> {
       return true;
     })()`,
   );
+}
+
+/** Drag from one ref to another with visible cursor + HTML5 drag events. */
+export async function dragRef(
+  tabId: number,
+  fromRef: string,
+  toRef: string,
+): Promise<boolean> {
+  const from = await resolveTarget(tabId, fromRef);
+  const to = await resolveTarget(tabId, toRef);
+  if (!from || !to) return false;
+  await highlightRef(tabId, fromRef);
+  await cdp.moveCursorOverlay(tabId, from.x, from.y);
+  await cdp.delay(40);
+  const ok = await cdp.evaluate<boolean>(
+    tabId,
+    `(() => {
+      const find = (ref) => {
+        let el = document.querySelector('[data-perfect-ref="' + ref + '"]');
+        if (el) return el;
+        for (const iframe of document.querySelectorAll('iframe')) {
+          try {
+            const doc = iframe.contentDocument;
+            if (!doc) continue;
+            el = doc.querySelector('[data-perfect-ref="' + ref + '"]');
+            if (el) return el;
+          } catch (_) {}
+        }
+        return null;
+      };
+      const src = find(${JSON.stringify(cssRef(fromRef))});
+      const dst = find(${JSON.stringify(cssRef(toRef))});
+      if (!src || !dst) return false;
+      const dt = new DataTransfer();
+      src.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
+      dst.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: dt }));
+      dst.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }));
+      const dropped = dst.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+      src.dispatchEvent(new DragEvent('dragend', { bubbles: true, cancelable: true, dataTransfer: dt }));
+      // Also fire mouse sequence for non-HTML5 handlers
+      src.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: ${from.x}, clientY: ${from.y} }));
+      dst.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true, clientX: ${to.x}, clientY: ${to.y} }));
+      dst.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, clientX: ${to.x}, clientY: ${to.y} }));
+      return true;
+    })()`,
+  );
+  await cdp.moveCursorOverlay(tabId, to.x, to.y);
+  await highlightRef(tabId, toRef);
+  return ok;
 }
 
 export async function readRefValue(tabId: number, ref: string): Promise<string | null> {

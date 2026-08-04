@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Perfect E2E — Upload</title>
+</head>
+<body>
+  <h1>Upload demo</h1>
+  <label>Choose file <input id="file" type="file" /></label>
+  <p id="chosen">none</p>
+  <script>
+    document.getElementById('file').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      document.getElementById('chosen').textContent = f ? f.name : 'none';
+    });
+  </script>
+</body>
+</html>

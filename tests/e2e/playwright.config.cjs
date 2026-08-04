@@ -15,7 +15,15 @@ module.exports = defineConfig({
   projects: [
     {
       name: "fixtures",
-      testMatch: "**/*.spec.cjs",
+      testMatch: "**/capability.spec.cjs",
+    },
+    {
+      name: "extension",
+      testMatch: "**/extension-bridge.spec.cjs",
+      timeout: 120_000,
+      use: {
+        headless: false,
+      },
     },
   ],
   outputDir: path.join(root, "../../test-results/e2e"),

@@ -133,13 +133,28 @@ export function classifyAction(ctx: ActionContext): Classification {
 
   if (
     ctx.tool === "browser_screenshot" ||
-    ctx.tool === "browser_console"
+    ctx.tool === "browser_console" ||
+    ctx.tool === "browser_network" ||
+    ctx.tool === "browser_upload"
   ) {
     reasons.push(
       ctx.tool === "browser_screenshot"
         ? "screenshot may include sensitive on-screen data"
-        : "console may include sensitive logged data",
+        : ctx.tool === "browser_console"
+          ? "console may include sensitive logged data"
+          : ctx.tool === "browser_network"
+            ? "network log may include sensitive URLs/headers"
+            : "file upload can send local files to the page",
     );
+    return { risk: "protected", reasons };
+  }
+
+  if (
+    ctx.tool === "browser_handle_dialog" &&
+    ctx.text &&
+    (CC_PATTERN.test(ctx.text) || SSN_PATTERN.test(ctx.text) || /password|secret|token/i.test(ctx.text))
+  ) {
+    reasons.push("sensitive dialog prompt text");
     return { risk: "protected", reasons };
   }
 
@@ -152,7 +167,8 @@ export function classifyAction(ctx: ActionContext): Classification {
     ctx.tool === "browser_type" ||
     ctx.tool === "browser_click" ||
     ctx.tool === "browser_hover" ||
-    ctx.tool === "browser_select"
+    ctx.tool === "browser_select" ||
+    ctx.tool === "browser_drag"
   ) {
     if (PROTECTED_LABEL.test(blob)) {
       return { risk: "protected", reasons };

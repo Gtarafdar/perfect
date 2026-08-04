@@ -5,6 +5,7 @@ import {
   snapshot,
   focusRef,
   hoverRef,
+  dragRef,
   nativeFillRef,
   resolveTarget,
   selectRef,
@@ -686,6 +687,120 @@ export async function runTool(
         await tabs.closeClaimedTab(tabId);
         await pushLog(tool, `close ${tabId}`);
         return { ok: true, result: { closed: tabId } };
+      }
+      case "browser_drag": {
+        const tabId = await tabs.resolveTabId(args.tabId as number | undefined);
+        const tab = await chrome.tabs.get(tabId);
+        const fromRef = String(args.fromRef ?? args.from);
+        const toRef = String(args.toRef ?? args.to);
+        const fromInfo = getRef(fromRef);
+        const toInfo = getRef(toRef);
+        const label = String(args.label ?? `${fromInfo?.name ?? fromRef} → ${toInfo?.name ?? toRef}`);
+        const { risk } = classify({ tool, url: tab.url ?? "", label });
+        const decision = await gate(tool, tab.url ?? "", `Drag ${label}`, risk, settings);
+        if (decision === "deny" || decision === "prohibited") {
+          return { ok: false, error: "Denied", decision, risk };
+        }
+        if (!fromInfo || !toInfo) {
+          return { ok: false, error: "Unknown fromRef/toRef. Take a new snapshot." };
+        }
+        await showHud(tabId, true);
+        const ok = await dragRef(tabId, fromRef, toRef);
+        if (!ok) return { ok: false, error: `Drag failed: ${label}`, decision, risk };
+        await pushLog(tool, `drag ${label}`);
+        return { ok: true, result: { tabId, fromRef, toRef, label }, decision, risk };
+      }
+      case "browser_upload": {
+        const tabId = await tabs.resolveTabId(args.tabId as number | undefined);
+        const tab = await chrome.tabs.get(tabId);
+        const ref = String(args.ref);
+        const paths = Array.isArray(args.paths)
+          ? (args.paths as string[])
+          : args.path
+            ? [String(args.path)]
+            : [];
+        const info = getRef(ref);
+        const label = String(args.label ?? info?.name ?? ref);
+        const { risk } = classify({ tool, url: tab.url ?? "", label });
+        const decision = await gate(tool, tab.url ?? "", `Upload to ${label}`, risk, settings);
+        if (decision === "deny" || decision === "prohibited") {
+          return { ok: false, error: "Denied", decision, risk };
+        }
+        if (!info) return { ok: false, error: `Unknown ref ${ref}. Take a new snapshot.` };
+        if (!paths.length) {
+          return { ok: false, error: "Provide path or paths (absolute file path(s))" };
+        }
+        await showHud(tabId, true);
+        await focusRef(tabId, ref);
+        const ok = await cdp.setFileInputFiles(tabId, ref, paths);
+        if (!ok) {
+          return {
+            ok: false,
+            error: "Upload failed — ref must be input[type=file] after snapshot",
+            decision,
+            risk,
+          };
+        }
+        await pushLog(tool, `upload ${label}`);
+        return {
+          ok: true,
+          result: { tabId, ref, paths: paths.map((p) => p.split("/").pop()), count: paths.length },
+          decision,
+          risk,
+        };
+      }
+      case "browser_network": {
+        const tabId = await tabs.resolveTabId(args.tabId as number | undefined);
+        const tab = await chrome.tabs.get(tabId);
+        const { risk } = classify({ tool, url: tab.url ?? "" });
+        const decision = await gate(tool, tab.url ?? "", "network", risk, settings);
+        if (decision === "deny" || decision === "prohibited") {
+          return { ok: false, error: "Denied", decision, risk };
+        }
+        await cdp.enableNetwork(tabId);
+        const requests = cdp.getNetwork(tabId, Number(args.limit ?? 40));
+        await pushLog(tool, `network ${requests.length}`);
+        return { ok: true, result: { tabId, requests }, decision, risk };
+      }
+      case "browser_handle_dialog": {
+        const tabId = await tabs.resolveTabId(args.tabId as number | undefined);
+        const tab = await chrome.tabs.get(tabId);
+        const accept = args.accept !== false;
+        const promptText = args.promptText != null ? String(args.promptText) : undefined;
+        const pending = cdp.getPendingDialog(tabId);
+        const { risk } = classify({
+          tool,
+          url: tab.url ?? "",
+          text: promptText ?? pending?.message,
+        });
+        const decision = await gate(
+          tool,
+          tab.url ?? "",
+          `dialog ${accept ? "accept" : "dismiss"}`,
+          risk,
+          settings,
+        );
+        if (decision === "deny" || decision === "prohibited") {
+          return { ok: false, error: "Denied", decision, risk };
+        }
+        await cdp.armDialogListener(tabId);
+        const ok = await cdp.handleJsDialog(tabId, accept, promptText);
+        if (!ok && !pending) {
+          return {
+            ok: false,
+            error: "No JavaScript dialog pending. Arm with a click that opens alert/confirm/prompt first.",
+            decision,
+            risk,
+            result: { pending: null },
+          };
+        }
+        await pushLog(tool, `dialog ${accept ? "accept" : "dismiss"}`);
+        return {
+          ok: true,
+          result: { tabId, accept, handled: ok, was: pending },
+          decision,
+          risk,
+        };
       }
       case "browser_evaluate": {
         const tabId = await tabs.resolveTabId(args.tabId as number | undefined);

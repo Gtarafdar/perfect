@@ -42,11 +42,18 @@ Perfect intentionally mirrors Claude’s public permission model:
 
 ## Residual risks
 
-- Screenshots, **annotated screenshots**, snapshots, extracts, and **console reads** can include sensitive on-screen or logged data and flow into Cursor’s context.
+- Screenshots, **annotated screenshots**, snapshots, extracts, **console reads**, and **network logs** can include sensitive on-screen, logged, or URL data and flow into Cursor’s context. Query tokens in URLs are redacted when obvious; headers with Authorization/cookies are not returned.
+- **File upload** (`browser_upload`) sends absolute local paths into the page via the debugger — only use on claimed Perfect tabs, never crawl the disk, and prefer disposable test files.
+- **JS dialogs** (`browser_handle_dialog`) may carry prompt text into Cursor; sensitive prompt text is gated as protected.
 - Heuristics can false-negative. Never use Skip mode on important accounts.
 - Prefer a separate Chrome profile without banking/email when experimenting.
 - Tab close/focus only targets the Perfect claimed group by default — still treat close carefully.
 - This project is **not** affiliated with Cursor, Anysphere, or Anthropic.
+
+## Follow-ups (not in this release)
+
+- Page clipboard R/W and PDF print (high PII / Store surface)
+- Network request interception / response rewrite (MITM risk)
 
 ## Reporting
 

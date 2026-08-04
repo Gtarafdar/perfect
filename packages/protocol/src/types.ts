@@ -32,7 +32,11 @@ export type ToolName =
   | "browser_hover"
   | "browser_select"
   | "browser_tab_close"
-  | "browser_tab_focus";
+  | "browser_tab_focus"
+  | "browser_drag"
+  | "browser_upload"
+  | "browser_network"
+  | "browser_handle_dialog";
 
 export type PermissionDecision =
   | "allow_once"

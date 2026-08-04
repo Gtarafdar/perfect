@@ -23,6 +23,15 @@ Perfect gives Cursor hands in real Chrome. Prefer **visible cursor tools** over 
 2. Click/fill refs that live in same-origin iframes (no silent evaluate unless required)
 3. Put lasting CSS in **Custom Code → CSS**, not a temporary injected `<style>`
 
+## Drag, upload, network, dialogs
+
+| Need | Tool | Notes |
+|---|---|---|
+| Drag card / item | `browser_drag` | `fromRef` + `toRef` after snapshot (includes `[draggable=true]`) |
+| File input | `browser_upload` | Absolute `path` / `paths`; protected; claimed tab |
+| See requests | `browser_network` | Read-only log; redacts sensitive query params |
+| alert/confirm/prompt | `browser_handle_dialog` | `accept` + optional `promptText`; arm before the click that opens it |
+
 ## When scripts fail
 
 Use `browser_extract` / `mode: "text"` snapshot. Do **not** reach for `document.cookie` / storage (prohibited).
@@ -34,4 +43,4 @@ Use `browser_extract` / `mode: "text"` snapshot. Do **not** reach for `document.
 
 ## Security
 
-Manual mode by default. Screenshots/console/annotations can include PII. See [SECURITY.md](./SECURITY.md).
+Manual mode by default. Screenshots/console/network/annotations/uploads can include PII. See [SECURITY.md](./SECURITY.md).

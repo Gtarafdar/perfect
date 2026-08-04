@@ -256,6 +256,62 @@ const TOOLS: Array<{
     },
   },
   {
+    name: "browser_drag",
+    description:
+      "Drag from fromRef to toRef with visible cursor (HTML5 drag + mouse). Snapshot both refs first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        fromRef: { type: "string" },
+        toRef: { type: "string" },
+        tabId: { type: "number" },
+        label: { type: "string" },
+      },
+      required: ["fromRef", "toRef"],
+    },
+  },
+  {
+    name: "browser_upload",
+    description:
+      "Set files on input[type=file] by ref. Requires absolute local path(s). Protected — claimed tabs only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ref: { type: "string" },
+        path: { type: "string", description: "Absolute file path" },
+        paths: { type: "array", items: { type: "string" } },
+        tabId: { type: "number" },
+        label: { type: "string" },
+      },
+      required: ["ref"],
+    },
+  },
+  {
+    name: "browser_network",
+    description:
+      "Read-only recent network requests (URL redacted when sensitive). Protected — no interception/rewrite.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        tabId: { type: "number" },
+        limit: { type: "number" },
+      },
+    },
+  },
+  {
+    name: "browser_handle_dialog",
+    description:
+      "Accept or dismiss a pending JS alert/confirm/prompt (Page.handleJavaScriptDialog).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        accept: { type: "boolean", description: "Default true" },
+        promptText: { type: "string" },
+        tabId: { type: "number" },
+      },
+    },
+  },
+  {
     name: "browser_evaluate",
     description:
       "Guarded JS evaluate (disabled patterns: cookies/storage). Prefer snapshot/extract/click/fill.",

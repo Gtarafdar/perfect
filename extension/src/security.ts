@@ -100,15 +100,31 @@ export function classify(opts: {
       return { risk: "prohibited", reasons: ["cookie/storage access blocked"] };
     }
   }
-  if (opts.tool === "browser_screenshot" || opts.tool === "browser_console") {
+  if (
+    opts.tool === "browser_screenshot" ||
+    opts.tool === "browser_console" ||
+    opts.tool === "browser_network" ||
+    opts.tool === "browser_upload"
+  ) {
     return {
       risk: "protected",
       reasons: [
         opts.tool === "browser_screenshot"
           ? "screenshot may include sensitive on-screen data"
-          : "console may include sensitive logged data",
+          : opts.tool === "browser_console"
+            ? "console may include sensitive logged data"
+            : opts.tool === "browser_network"
+              ? "network log may include sensitive URLs/headers"
+              : "file upload can send local files to the page",
       ],
     };
+  }
+  if (
+    opts.tool === "browser_handle_dialog" &&
+    opts.text &&
+    (/\b(?:\d[ -]*?){13,19}\b/.test(opts.text) || /password|secret|token/i.test(opts.text))
+  ) {
+    return { risk: "protected", reasons: ["sensitive dialog prompt text"] };
   }
   if (PROHIBITED.test(blob)) {
     return { risk: "prohibited", reasons: ["prohibited action label"] };

@@ -129,6 +129,70 @@ test.describe("Security classification locks", () => {
     });
     expect(r.risk).toBe("low");
   });
+
+  test("Upload protected | browser_upload", async () => {
+    const { classifyAction } = await import("@perfect/protocol");
+    expect(
+      classifyAction({
+        tool: "browser_upload",
+        url: "https://example.com",
+        label: "Choose file",
+      }).risk,
+    ).toBe("protected");
+  });
+
+  test("Network protected | browser_network", async () => {
+    const { classifyAction } = await import("@perfect/protocol");
+    expect(
+      classifyAction({
+        tool: "browser_network",
+        url: "https://example.com",
+      }).risk,
+    ).toBe("protected");
+  });
+
+  test("Drag is low | browser_drag", async () => {
+    const { classifyAction } = await import("@perfect/protocol");
+    expect(
+      classifyAction({
+        tool: "browser_drag",
+        url: "https://example.com",
+        label: "Item to zone",
+      }).risk,
+    ).toBe("low");
+  });
+});
+
+test.describe("Completion fixtures", () => {
+  test("Drag drop zone | browser_drag", async ({ page }) => {
+    await page.goto(fileUrl("drag.html"));
+    await page.locator("#drag-src").dragTo(page.locator("#drop-zone"));
+    await expect(page.locator("#status")).toHaveText("dropped");
+  });
+
+  test("File input present | browser_upload", async ({ page }) => {
+    await page.goto(fileUrl("upload.html"));
+    await expect(page.locator("#file")).toBeVisible();
+    const sample = path.join(fixtures, "network-data.json");
+    await page.setInputFiles("#file", sample);
+    await expect(page.locator("#chosen")).toHaveText("network-data.json");
+  });
+
+  test("Dialog buttons present | browser_handle_dialog", async ({ page }) => {
+    await page.goto(fileUrl("dialogs.html"));
+    page.once("dialog", async (d) => {
+      expect(d.message()).toContain("Hello");
+      await d.accept();
+    });
+    await page.click("#btn-alert");
+    await expect(page.locator("#result")).toHaveText("alerted");
+  });
+
+  test("Fetch network JSON | browser_network", async ({ page }) => {
+    await page.goto(fileUrl("network.html"));
+    await page.click("#fetch-btn");
+    await expect(page.locator("#out")).toContainText("perfect-network");
+  });
 });
 
 test.describe("Snapshot logic in page", () => {

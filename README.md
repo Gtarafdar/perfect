@@ -38,9 +38,9 @@ Cursor  --MCP stdio-->  @perfect/mcp  --localhost WS + token-->  Chrome extensio
 | Area | Tools |
 |---|---|
 | Tabs | `browser_status` `browser_tabs` `browser_navigate` `browser_back` `browser_forward` `browser_tab_focus` `browser_tab_close` |
-| Read | `browser_snapshot` (compact/full/text, iframes) `browser_extract` `browser_console` `browser_wait` |
-| Act | `browser_click` `browser_hover` `browser_fill` `browser_type` `browser_select` `browser_press` `browser_scroll` |
-| See | `browser_screenshot` (optional annotations, fullPage, clip) |
+| Read | `browser_snapshot` (compact/full/text, iframes) `browser_extract` `browser_console` `browser_network` `browser_wait` |
+| Act | `browser_click` `browser_hover` `browser_drag` `browser_fill` `browser_type` `browser_select` `browser_upload` `browser_press` `browser_scroll` `browser_handle_dialog` |
+| See | `browser_screenshot` (annotations, fullPage, clip) |
 | Guarded | `browser_evaluate` `browser_propose_plan` `browser_stop` |
 
 See [Agent playbook](docs/AGENT_PLAYBOOK.md) for research / WPBakery / scrape workflows.
@@ -49,9 +49,10 @@ See [Agent playbook](docs/AGENT_PLAYBOOK.md) for research / WPBakery / scrape wo
 
 ```bash
 npm install && npm run build
-npm test                 # Vitest unit + integration
-npm run test:e2e         # Playwright fixtures + security locks → docs/capability-report.md
-npm run test:e2e:report
+npm test                      # Vitest unit + integration
+npm run test:e2e              # Playwright fixtures → docs/capability-report.md
+npm run test:e2e:extension    # Chromium + unpacked extension + MCP WS bridge
+npm run test:e2e:all          # fixtures + extension
 ```
 
 ## Chrome Web Store

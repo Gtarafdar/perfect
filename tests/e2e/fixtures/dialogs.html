@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Perfect E2E — Dialogs</title>
+</head>
+<body>
+  <h1>Dialog demo</h1>
+  <button id="btn-alert">Alert</button>
+  <button id="btn-confirm">Confirm</button>
+  <button id="btn-prompt">Prompt</button>
+  <p id="result">idle</p>
+  <script>
+    document.getElementById('btn-alert').onclick = () => {
+      alert('Hello alert');
+      document.getElementById('result').textContent = 'alerted';
+    };
+    document.getElementById('btn-confirm').onclick = () => {
+      const ok = confirm('Proceed?');
+      document.getElementById('result').textContent = ok ? 'confirmed' : 'cancelled';
+    };
+    document.getElementById('btn-prompt').onclick = () => {
+      const v = prompt('Your name', 'Ada');
+      document.getElementById('result').textContent = v ? 'prompt:' + v : 'prompt-cancel';
+    };
+  </script>
+</body>
+</html>

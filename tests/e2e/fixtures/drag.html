@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Perfect E2E — Drag</title>
+  <style>
+    body { font-family: system-ui; margin: 40px; }
+    #drag-src { width: 120px; padding: 16px; background: #b8ff3c; color: #0a0b0a; cursor: grab; }
+    #drop-zone { margin-top: 24px; width: 200px; height: 100px; border: 2px dashed #333; display: flex; align-items: center; justify-content: center; }
+    #drop-zone.filled { background: #e8ffe0; }
+  </style>
+</head>
+<body>
+  <h1>Drag demo</h1>
+  <div id="drag-src" draggable="true">Drag me</div>
+  <div id="drop-zone">Drop here</div>
+  <p id="status">idle</p>
+  <script>
+    const src = document.getElementById('drag-src');
+    const zone = document.getElementById('drop-zone');
+    src.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', 'perfect');
+    });
+    zone.addEventListener('dragover', (e) => e.preventDefault());
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      zone.classList.add('filled');
+      zone.textContent = 'Dropped';
+      document.getElementById('status').textContent = 'dropped';
+    });
+  </script>
+</body>
+</html>

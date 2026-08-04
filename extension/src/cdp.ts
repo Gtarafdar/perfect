@@ -103,6 +103,28 @@ export async function screenshotPng(
 const consoleBuf = new Map<number, Array<{ type: string; text: string; ts: number }>>();
 const consoleListening = new Set<number>();
 
+type NetEntry = {
+  id: string;
+  url: string;
+  method: string;
+  status?: number;
+  type?: string;
+  size?: number;
+  ts: number;
+};
+const networkBuf = new Map<number, NetEntry[]>();
+const networkListening = new Set<number>();
+const networkMeta = new Map<string, { url: string; method: string; type?: string; tabId: number }>();
+
+type PendingDialog = {
+  tabId: number;
+  type: string;
+  message: string;
+  defaultPrompt?: string;
+  ts: number;
+};
+const pendingDialogs = new Map<number, PendingDialog>();
+
 function pushConsole(tabId: number, type: string, text: string): void {
   const redacted = text
     .replace(/(api[_-]?key|token|password|secret)\s*[:=]\s*\S+/gi, "$1=[REDACTED]")
@@ -112,13 +134,30 @@ function pushConsole(tabId: number, type: string, text: string): void {
   consoleBuf.set(tabId, list.slice(-80));
 }
 
+function pushNetwork(tabId: number, entry: NetEntry): void {
+  const list = networkBuf.get(tabId) ?? [];
+  list.push(entry);
+  networkBuf.set(tabId, list.slice(-100));
+}
+
+function redactUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    if (/token|key|secret|password|auth/i.test(u.search)) {
+      u.search = "?[REDACTED]";
+    }
+    return u.toString().slice(0, 500);
+  } catch {
+    return url.slice(0, 500);
+  }
+}
+
 /** Attach and start collecting console messages (read-only). */
 export async function enableConsole(tabId: number): Promise<void> {
   await attach(tabId);
   if (consoleListening.has(tabId)) return;
   consoleListening.add(tabId);
-  // Chrome MV3: listen via debugger event in background — register once globally
-  ensureDebuggerConsoleHook();
+  ensureDebuggerHooks();
 }
 
 export function getConsole(tabId: number, limit = 40): Array<{ type: string; text: string; ts: number }> {
@@ -126,8 +165,124 @@ export function getConsole(tabId: number, limit = 40): Array<{ type: string; tex
   return list.slice(-Math.min(Math.max(limit, 1), 80));
 }
 
+/** Enable Network domain and buffer requests (read-only). */
+export async function enableNetwork(tabId: number): Promise<void> {
+  await attach(tabId);
+  await send(tabId, "Network.enable", {});
+  networkListening.add(tabId);
+  ensureDebuggerHooks();
+}
+
+export function getNetwork(
+  tabId: number,
+  limit = 40,
+): NetEntry[] {
+  const list = networkBuf.get(tabId) ?? [];
+  return list.slice(-Math.min(Math.max(limit, 1), 100));
+}
+
+export function getPendingDialog(tabId: number): PendingDialog | null {
+  return pendingDialogs.get(tabId) ?? null;
+}
+
+/** Accept or dismiss a JS alert/confirm/prompt. */
+export async function handleJsDialog(
+  tabId: number,
+  accept: boolean,
+  promptText?: string,
+): Promise<boolean> {
+  await attach(tabId);
+  ensureDebuggerHooks();
+  try {
+    await send(tabId, "Page.handleJavaScriptDialog", {
+      accept,
+      ...(promptText != null ? { promptText } : {}),
+    });
+    pendingDialogs.delete(tabId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Arm Page domain so javascriptDialogOpening is captured. */
+export async function armDialogListener(tabId: number): Promise<void> {
+  await attach(tabId);
+  await send(tabId, "Page.enable", {});
+  ensureDebuggerHooks();
+}
+
+/**
+ * Set files on a stamped file input via CDP DOM.setFileInputFiles.
+ * paths must be absolute local file paths.
+ */
+export async function setFileInputFiles(
+  tabId: number,
+  ref: string,
+  paths: string[],
+): Promise<boolean> {
+  if (!paths.length || paths.some((p) => !p || typeof p !== "string" || !p.startsWith("/"))) {
+    throw new Error("Upload requires absolute file path(s)");
+  }
+  await attach(tabId);
+  const safe = ref.replace(/[^a-zA-Z0-9_-]/g, "");
+  const found = await evaluate<boolean>(
+    tabId,
+    `(() => {
+      const find = (ref) => {
+        let el = document.querySelector('[data-perfect-ref="' + ref + '"]');
+        if (el) return el;
+        for (const iframe of document.querySelectorAll('iframe')) {
+          try {
+            const doc = iframe.contentDocument;
+            if (!doc) continue;
+            el = doc.querySelector('[data-perfect-ref="' + ref + '"]');
+            if (el) return el;
+          } catch (_) {}
+        }
+        return null;
+      };
+      const el = find(${JSON.stringify(safe)});
+      if (!el || el.tagName !== 'INPUT' || el.type !== 'file') return false;
+      el.scrollIntoView({ block: 'center', behavior: 'instant' });
+      return true;
+    })()`,
+  );
+  if (!found) return false;
+
+  const evalResult = await send<{
+    result: { objectId?: string };
+  }>(tabId, "Runtime.evaluate", {
+    expression: `(() => {
+      const find = (ref) => {
+        let el = document.querySelector('[data-perfect-ref="' + ref + '"]');
+        if (el) return el;
+        for (const iframe of document.querySelectorAll('iframe')) {
+          try {
+            const doc = iframe.contentDocument;
+            if (!doc) continue;
+            el = doc.querySelector('[data-perfect-ref="' + ref + '"]');
+            if (el) return el;
+          } catch (_) {}
+        }
+        return null;
+      };
+      return find(${JSON.stringify(safe)});
+    })()`,
+    returnByValue: false,
+  });
+  const objectId = evalResult.result?.objectId;
+  if (!objectId) return false;
+  const node = await send<{ nodeId: number }>(tabId, "DOM.requestNode", { objectId });
+  await send(tabId, "DOM.setFileInputFiles", {
+    nodeId: node.nodeId,
+    files: paths,
+  });
+  return true;
+}
+
 let debuggerHooked = false;
-function ensureDebuggerConsoleHook(): void {
+function ensureDebuggerHooks(): void {
   if (debuggerHooked) return;
   debuggerHooked = true;
   chrome.debugger.onEvent.addListener((source, method, params) => {
@@ -150,6 +305,79 @@ function ensureDebuggerConsoleHook(): void {
         p.exceptionDetails?.text ||
         "exception";
       pushConsole(tabId, "error", text);
+    }
+    if (method === "Network.requestWillBeSent" && params && networkListening.has(tabId)) {
+      const p = params as {
+        requestId: string;
+        request: { url: string; method: string };
+        type?: string;
+      };
+      networkMeta.set(p.requestId, {
+        url: p.request.url,
+        method: p.request.method,
+        type: p.type,
+        tabId,
+      });
+    }
+    if (method === "Network.loadingFinished" && params && networkListening.has(tabId)) {
+      const p = params as { requestId: string; encodedDataLength?: number };
+      const meta = networkMeta.get(p.requestId);
+      if (meta) {
+        pushNetwork(tabId, {
+          id: p.requestId,
+          url: redactUrl(meta.url),
+          method: meta.method,
+          type: meta.type,
+          size: p.encodedDataLength,
+          ts: Date.now(),
+        });
+        networkMeta.delete(p.requestId);
+      }
+    }
+    if (method === "Network.responseReceived" && params && networkListening.has(tabId)) {
+      const p = params as {
+        requestId: string;
+        response: { status: number; url: string };
+        type?: string;
+      };
+      const meta = networkMeta.get(p.requestId) ?? {
+        url: p.response.url,
+        method: "GET",
+        type: p.type,
+        tabId,
+      };
+      networkMeta.set(p.requestId, meta);
+      const list = networkBuf.get(tabId) ?? [];
+      const existing = list.find((e) => e.id === p.requestId);
+      if (existing) {
+        existing.status = p.response.status;
+      } else {
+        pushNetwork(tabId, {
+          id: p.requestId,
+          url: redactUrl(meta.url),
+          method: meta.method,
+          status: p.response.status,
+          type: meta.type ?? p.type,
+          ts: Date.now(),
+        });
+      }
+    }
+    if (method === "Page.javascriptDialogOpening" && params) {
+      const p = params as {
+        type: string;
+        message: string;
+        defaultPrompt?: string;
+      };
+      pendingDialogs.set(tabId, {
+        tabId,
+        type: p.type,
+        message: String(p.message || "").slice(0, 500),
+        defaultPrompt: p.defaultPrompt,
+        ts: Date.now(),
+      });
+    }
+    if (method === "Page.javascriptDialogClosed") {
+      pendingDialogs.delete(tabId);
     }
   });
 }

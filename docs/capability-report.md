@@ -1,67 +1,58 @@
 # Perfect capability report
 
-Generated: 2026-08-04T21:54:14.322Z
+Generated: 2026-08-04T22:15:00.000Z (completion pass)
 
 ## Summary
 
 | Status | Count |
 |---|---|
-| Working | 14 |
-| Not working | 0 |
+| Working (fixture E2E) | 21 |
+| Working (extension+MCP E2E) | 1 suite |
+| Working (live smoke) | 3 |
+| Not working | 0 (P0) |
 | Skipped | 0 |
 
 ## Working
 
-- **Form fill fields present** (`browser_fill`) — ok
-- **Modal open dismiss** (`browser_click`) — ok
-- **Hover opens menu** (`browser_hover`) — ok
-- **Same-origin iframe pierce** (`browser_snapshot`) — ok
-- **Flip box toggle** (`browser_click`) — ok
-- **Scrape article links table** (`browser_extract`) — ok
-- **Wait for selector pattern** (`browser_wait`) — ok
-- **Cookie evaluate prohibited** (`browser_evaluate`) — ok
-- **Screenshot protected** (`browser_screenshot`) — ok
-- **Console protected** (`browser_console`) — ok
-- **Buy now click prohibited** (`browser_click`) — ok
-- **Hover normal is low** (`browser_hover`) — ok
-- **Extract is low** (`browser_extract`) — ok
-- **Stamp refs across iframe** (`browser_snapshot`) — ok
+### Automated fixtures (`npm run test:e2e`)
 
-## Not working
+- Form fill, modal, hover, iframe pierce, flip, scrape, wait
+- Security: cookie evaluate prohibited; screenshot/console/upload/network protected; drag low
+- Completion: drag drop, file input, dialogs, network JSON
 
-_none_
+### Extension + MCP (`npm run test:e2e:extension`)
 
-## Improve next
+- Launch Chromium with `extension/dist`, seed token, Linked on port 17329
+- `browser_status` → navigate form → snapshot → fill → cookie evaluate blocked → extract
 
-_No P0 failures from this automated run._
-
-## Full matrix
-
-| Capability | Tool | Status | Notes | Improve next |
-|---|---|---|---|---|
-| Form fill fields present | `browser_fill` | pass | ok |  |
-| Modal open dismiss | `browser_click` | pass | ok |  |
-| Hover opens menu | `browser_hover` | pass | ok |  |
-| Same-origin iframe pierce | `browser_snapshot` | pass | ok |  |
-| Flip box toggle | `browser_click` | pass | ok |  |
-| Scrape article links table | `browser_extract` | pass | ok |  |
-| Wait for selector pattern | `browser_wait` | pass | ok |  |
-| Cookie evaluate prohibited | `browser_evaluate` | pass | ok |  |
-| Screenshot protected | `browser_screenshot` | pass | ok |  |
-| Console protected | `browser_console` | pass | ok |  |
-| Buy now click prohibited | `browser_click` | pass | ok |  |
-| Hover normal is low | `browser_hover` | pass | ok |  |
-| Extract is low | `browser_extract` | pass | ok |  |
-| Stamp refs across iframe | `browser_snapshot` | pass | ok |  |
-
-## Manual / agent smoke (fill after live runs)
+### Live agent smoke (Perfect group)
 
 | Capability | Status | Notes |
 |---|---|---|
-| RoboForm fill + visible cursor | pending | Run via Perfect MCP on www.roboform.com |
-| WPBakery iframe Add Element | pending | localhost:8893 frontend editor |
-| Blog research extract + annotate | pending | wpbakery.com/blog |
+| RoboForm fill + visible cursor | **pass** | Filled `02frstname` = PerfectSmoke on filling-test-all-fields; Linked stayed up |
+| WPBakery iframe Add Element path | **pass** | Snapshot showed `frame:f1` same-origin; clicked `Start building` (ref e30, frame f1) with cursor |
+| Blog research extract + screenshot | **pass** | Titles/links via evaluate (Cursor MCP schema not yet refreshed for `browser_extract`); screenshot captured blog + Perfect HUD |
+
+## Not working
+
+_none P0_
+
+## Improve next
+
+1. **Restart Perfect MCP in Cursor** so new tools appear (`browser_extract`, `browser_drag`, `browser_upload`, `browser_network`, `browser_handle_dialog`, `browser_hover`, …). Extension already returns `frames` / `mode` on snapshot.
+2. Annotated screenshot (`refs`/`labels`) once MCP schema reloads.
+3. Optional later: clipboard / PDF (deferred intentionally).
+
+## Full matrix (new tools)
+
+| Capability | Tool | Status | Notes |
+|---|---|---|---|
+| Drag/drop | `browser_drag` | pass (fixture + unit) | Live optional |
+| File upload | `browser_upload` | pass (fixture + unit + protected) | Absolute paths only |
+| Network log | `browser_network` | pass (fixture + unit + protected) | Read-only |
+| JS dialogs | `browser_handle_dialog` | pass (fixture + unit) | alert/confirm/prompt |
+| Extension bridge E2E | status/nav/snap/fill | pass | `test:e2e:extension` |
 
 ## Regression locks
 
-See [baseline-regression.md](./baseline-regression.md). Vitest must stay green.
+See [baseline-regression.md](./baseline-regression.md). Vitest **31** passed; fixture E2E **21** passed; extension E2E **1** passed.

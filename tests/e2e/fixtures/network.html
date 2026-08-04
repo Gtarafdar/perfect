@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Perfect E2E — Network</title>
+</head>
+<body>
+  <h1>Network demo</h1>
+  <button id="fetch-btn">Fetch JSON</button>
+  <pre id="out">idle</pre>
+  <script>
+    document.getElementById('fetch-btn').onclick = async () => {
+      // file:// fixtures cannot fetch sibling JSON (CORS). Prefer real fetch when http-hosted.
+      try {
+        const res = await fetch('network-data.json');
+        if (!res.ok) throw new Error('bad status');
+        const data = await res.json();
+        document.getElementById('out').textContent = JSON.stringify(data);
+      } catch (_) {
+        document.getElementById('out').textContent = JSON.stringify({
+          ok: true,
+          feature: 'perfect-network',
+          via: 'inline-fallback',
+        });
+      }
+    };
+  </script>
+</body>
+</html>

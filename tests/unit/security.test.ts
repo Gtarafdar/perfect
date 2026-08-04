@@ -77,6 +77,42 @@ describe("classifyAction", () => {
       }).risk,
     ).toBe("low");
   });
+
+  it("protects upload and network", () => {
+    expect(
+      classifyAction({
+        tool: "browser_upload",
+        url: "https://example.com",
+        label: "Choose file",
+      }).risk,
+    ).toBe("protected");
+    expect(
+      classifyAction({
+        tool: "browser_network",
+        url: "https://example.com",
+      }).risk,
+    ).toBe("protected");
+  });
+
+  it("allows drag as low unless prohibited label", () => {
+    expect(
+      classifyAction({
+        tool: "browser_drag",
+        url: "https://example.com",
+        label: "Card A to column B",
+      }).risk,
+    ).toBe("low");
+  });
+
+  it("protects sensitive dialog prompt text", () => {
+    expect(
+      classifyAction({
+        tool: "browser_handle_dialog",
+        url: "https://example.com",
+        text: "password=secret123",
+      }).risk,
+    ).toBe("protected");
+  });
 });
 
 describe("scanForInjection", () => {
