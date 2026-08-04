@@ -1,12 +1,18 @@
-# Publishing `perfect-mcp`
+# Publishing `perfect-mcp` (optional)
 
-One-prompt connect needs `npx -y perfect-mcp` on npm.
+**End users do not need this.** The Copy setup prompt installs from GitHub:
+
+```text
+npx -y --package=github:Gtarafdar/perfect#path:packages/mcp-server perfect-mcp
+```
+
+Optional registry publish (faster cold starts later):
 
 ```bash
 cd packages/mcp-server
 npm run build
-npm login          # once
+npm login
 npm publish --access public
 ```
 
-Package is unscoped (`perfect-mcp`), protocol is bundled into `dist/`, runtime deps are `@modelcontextprotocol/sdk`, `ws`, `zod`.
+Then switch the extension default connect mode from `github` to `npm` if desired.

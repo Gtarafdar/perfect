@@ -1,7 +1,6 @@
-#!/usr/bin/env node
 /**
- * Package entry: `npx @perfect/mcp` starts the MCP server (for Cursor).
- * `npx @perfect/mcp setup` (and other CLI cmds) go to the setup CLI.
+ * Package entry: `npx perfect-mcp` starts the MCP server (for Cursor).
+ * `npx perfect-mcp setup` (and other CLI cmds) go to the setup CLI.
  */
 const args = process.argv.slice(2);
 const cliCommands = new Set([

@@ -42,10 +42,11 @@ function snippetOpts(state: State) {
       serverPath: path,
     };
   }
+  // Default: GitHub install — works for everyone without npm publish
   return {
     token: state.settings.token,
     wsPort: state.settings.wsPort || 17321,
-    mode: "npx" as const,
+    mode: "github" as const,
   };
 }
 

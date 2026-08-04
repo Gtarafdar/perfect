@@ -6,6 +6,8 @@ coverage/
 .perfect/
 extension/dist/
 packages/*/dist/
+!packages/mcp-server/dist/
+!packages/mcp-server/dist/**
 *.zip
 .env
 .env.*

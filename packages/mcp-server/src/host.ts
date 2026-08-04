@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Native Messaging host entry — Chrome launches this and talks over stdin/stdout.
  * For v1 we primarily use WebSocket; this host bridges NM ↔ local WS so the
