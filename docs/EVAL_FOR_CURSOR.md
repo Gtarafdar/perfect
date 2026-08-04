@@ -4,6 +4,8 @@
 
 Not affiliated with Cursor / Anysphere.
 
+**v0.2:** stable Linked reconnect, ~26 tools, live smokes including YouTube search→play. See [demo-script.md](./demo-script.md).
+
 ## 5-minute try (one prompt)
 
 ```bash
@@ -16,7 +18,11 @@ cd perfect && npm install && npm run build
 3. Paste into Cursor — agent merges `~/.cursor/mcp.json` (keeps other servers) and guides enable
 4. Panel shows **Linked to Cursor**
 
-Published MCP: `npx -y perfect-mcp` (with `PERFECT_TOKEN` env from the prompt).
+For local git builds, point MCP at `packages/mcp-server/dist/index.js` with `PERFECT_TOKEN` (or use `npx -y --package=github:Gtarafdar/perfect perfect-mcp`).
+
+## Fun 30s prompt
+
+> Using Perfect: search YouTube for “Saiyaara song”, open the official YRF title track, and play it.
 
 ## Architecture
 

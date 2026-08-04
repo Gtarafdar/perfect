@@ -6,7 +6,9 @@ Unofficial open-source MCP bridge: Cursor agents navigate, click, fill, screensh
 
 > Not affiliated with Cursor, Anysphere, or Anthropic.
 
-[Security](docs/SECURITY.md) · [Agent playbook](docs/AGENT_PLAYBOOK.md) · [Capability report](docs/capability-report.md) · [Eval for Cursor](docs/EVAL_FOR_CURSOR.md)
+**Status: v0.2 ready** — Linked bridge is stable, ~26 tools, live smoke (forms, builders, YouTube search→play). See [demo script](docs/demo-script.md) · [agent playbook](docs/AGENT_PLAYBOOK.md).
+
+[Security](docs/SECURITY.md) · [Capability report](docs/capability-report.md) · [Eval for Cursor](docs/EVAL_FOR_CURSOR.md) · [Share kit](docs/share/social-copy.md)
 
 ---
 
@@ -24,6 +26,12 @@ Cursor  --MCP stdio-->  @perfect/mcp  --localhost WS + token-->  Chrome extensio
 2. Open Perfect → **Copy setup prompt for Cursor**
 3. Paste into Cursor — it merges MCP config and guides you
 4. Enable **perfect** in Settings → MCP if asked → **Linked**
+
+## Try this prompt
+
+> Using Perfect: search YouTube for “Saiyaara song”, open the official YRF title track, and play it.
+
+Agent pattern: `browser_navigate` (search or watch URL) → `browser_wait` / screenshot → `browser_press` `k` if needed. Full recipes in the [playbook](docs/AGENT_PLAYBOOK.md#search--play-media-youtube).
 
 ## Permission modes (default: Manual)
 
@@ -43,7 +51,7 @@ Cursor  --MCP stdio-->  @perfect/mcp  --localhost WS + token-->  Chrome extensio
 | See | `browser_screenshot` (annotations, fullPage, clip) |
 | Guarded | `browser_evaluate` `browser_propose_plan` `browser_stop` |
 
-See [Agent playbook](docs/AGENT_PLAYBOOK.md) for research / WPBakery / scrape workflows.
+See [Agent playbook](docs/AGENT_PLAYBOOK.md) for research / media / WPBakery / scrape workflows.
 
 ## Develop
 

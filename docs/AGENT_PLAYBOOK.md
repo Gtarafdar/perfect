@@ -9,6 +9,20 @@ Perfect gives Cursor hands in real Chrome. Prefer **visible cursor tools** over 
 3. `browser_screenshot` with `refs` + `labels` when you need annotated evidence for a doc
 4. Write markdown notes in the repo from extract + captions — Perfect supplies evidence only
 
+## Search & play media (YouTube)
+
+There is no dedicated `browser_search` tool — chain the browser tools.
+
+1. `browser_navigate` to a search URL, e.g. `https://www.youtube.com/results?search_query=saiyaara+song` (reuse `tabId`)
+2. `browser_wait` a few seconds; `browser_screenshot` if snapshot is flaky on heavy SPAs
+3. Prefer opening a known watch URL when the top result is clear: `browser_navigate` → `https://www.youtube.com/watch?v=…`
+4. `browser_press` `k` (YouTube play/pause) or Space if autoplay is blocked
+5. Confirm with `browser_screenshot`
+
+**Live smoke (v0.2):** “saiyara” → official YRF *Saiyaara Title Song* (`BSJa1UytM8w`) played in the Perfect tab group.
+
+On script-heavy sites (YouTube), snapshot/evaluate can fail; navigate + wait + screenshot + keyboard still works.
+
 ## Fix / debug UI
 
 1. Snapshot (`full` if modals/menus matter)
