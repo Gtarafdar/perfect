@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Security — Perfect | Local Cursor ↔ Chrome bridge</title>
+    <meta
+      name="description"
+      content="Perfect security model: local CSPRNG bridge token, 127.0.0.1 WebSocket, Manual permissions, prohibited actions, and residual risks for Cursor agents in Chrome."
+    />
+    <link rel="canonical" href="https://gtarafdar.github.io/perfect/security.html" />
+    <meta name="theme-color" content="#0a0b0a" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://gtarafdar.github.io/perfect/security.html" />
+    <meta property="og:title" content="Security — Perfect" />
+    <meta
+      property="og:description"
+      content="Local Cursor ↔ Chrome bridge threat model, pairing, and residual risks."
+    />
+    <meta property="og:image" content="https://gtarafdar.github.io/perfect/og-image.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "headline": "Security — Perfect",
+        "description": "Threat model and pairing for the local Perfect Cursor ↔ Chrome bridge.",
+        "url": "https://gtarafdar.github.io/perfect/security.html",
+        "image": "https://gtarafdar.github.io/perfect/og-image.jpg",
+        "author": { "@type": "Person", "name": "Gobinda Tarafdar" },
+        "publisher": { "@type": "Person", "name": "Gobinda Tarafdar" },
+        "dateModified": "2026-08-07"
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="nav">
+      <div class="nav-inner">
+        <a class="brand" href="./" aria-label="Perfect home">
+          <img class="brand-mark" src="brand-mark.svg" width="28" height="28" alt="" />
+          Perfect
+        </a>
+        <ul class="nav-links" aria-label="Primary">
+          <li><a href="./#demo">Demo</a></li>
+          <li><a href="./#capabilities">Capabilities</a></li>
+          <li><a href="playbook.html">Playbook</a></li>
+          <li><a href="./#download">Download</a></li>
+          <li><a href="security.html" aria-current="page">Security</a></li>
+        </ul>
+        <div class="nav-cta">
+          <a class="btn btn-ghost btn-sm" href="https://github.com/Gtarafdar/perfect" target="_blank" rel="noreferrer">Star</a>
+          <a class="btn btn-primary btn-sm" href="https://github.com/Gtarafdar/perfect/releases/latest">Download</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="doc-page">
+      <header class="doc-hero wrap">
+        <p class="kicker">Trust</p>
+        <h1>Security</h1>
+        <p class="lede">
+          Perfect is a <strong style="color: var(--text)">local</strong> Cursor ↔ Chrome bridge.
+          The agent brain lives in Cursor; the extension executes browser tools. Page content is
+          <strong style="color: var(--text)">untrusted</strong>.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="privacy.html">Privacy policy</a>
+          <a class="btn btn-ghost" href="playbook.html">Agent playbook</a>
+          <a
+            class="btn btn-ghost"
+            href="https://github.com/Gtarafdar/perfect/security/advisories"
+            target="_blank"
+            rel="noreferrer"
+            >Report a vulnerability</a
+          >
+        </div>
+      </header>
+
+      <div class="wrap doc-layout">
+        <nav class="doc-toc glass" aria-label="Security sections">
+          <p class="doc-toc-label">On this page</p>
+          <ol>
+            <li><a href="#pairing">Pairing</a></li>
+            <li><a href="#threat-model">Threat model</a></li>
+            <li><a href="#claude-mapping">Claude for Chrome mapping</a></li>
+            <li><a href="#residual">Residual risks</a></li>
+            <li><a href="#follow-ups">Follow-ups</a></li>
+            <li><a href="#reporting">Reporting</a></li>
+          </ol>
+        </nav>
+
+        <div class="doc-body">
+          <article class="doc-section" id="pairing">
+            <p class="kicker">01</p>
+            <h2>Pairing (extension-first)</h2>
+            <p class="prose-p">
+              On first open, the extension mints a <strong style="color: var(--text)">CSPRNG</strong> bridge
+              token (≥24 bytes) and stores it in <code>chrome.storage.local</code>.
+            </p>
+            <p class="prose-p">
+              <strong style="color: var(--text)">Happy path:</strong>
+              <strong style="color: var(--text)">Copy setup prompt for Cursor</strong> — paste once into Cursor.
+              The agent merges <code>mcpServers.perfect</code> with <code>npx -y perfect-mcp</code> and
+              <code>PERFECT_TOKEN</code> env. Cursor starts the MCP; the extension connects over
+              <code>ws://127.0.0.1</code> with the same token.
+            </p>
+            <ul>
+              <li>Env token <strong style="color: var(--text)">wins</strong> over <code>~/.perfect/config.json</code>.</li>
+              <li>Short / empty tokens are rejected at MCP startup.</li>
+              <li>Regenerating the token in the panel invalidates old MCP env until you copy again.</li>
+              <li>Perfect does <strong style="color: var(--text)">not</strong> upload the token anywhere.</li>
+            </ul>
+            <h3>Residual pairing risks</h3>
+            <p class="prose-p">
+              Anyone with local access to <code>~/.cursor/mcp.json</code> (or your clipboard right after copy)
+              can run the MCP server with your token and drive the bridge — same class of risk as a local API
+              key or the older <code>~/.perfect/token.txt</code> flow. Keep mcp.json permissions private;
+              regenerate if leaked.
+            </p>
+          </article>
+
+          <article class="doc-section" id="threat-model">
+            <p class="kicker">02</p>
+            <h2>Threat model</h2>
+            <div class="doc-table-wrap">
+              <table class="doc-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Threat</th>
+                    <th scope="col">Mitigation</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Prompt injection in page/DOM</td>
+                    <td>Heuristic scan on snapshots; Manual mode default; pause on hits</td>
+                  </tr>
+                  <tr>
+                    <td>Malicious local process</td>
+                    <td>Auth token; WebSocket bound to <code>127.0.0.1</code> only</td>
+                  </tr>
+                  <tr>
+                    <td>Cookie theft via evaluate</td>
+                    <td><code>document.cookie</code> / storage access <strong style="color: var(--text)">prohibited</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Tab hijacking</td>
+                    <td>Actions target Perfect tab group (claimed tabs) by default</td>
+                  </tr>
+                  <tr>
+                    <td>Debugger left attached</td>
+                    <td>Detach on stop / disconnect</td>
+                  </tr>
+                  <tr>
+                    <td>Purchases / permanent deletes</td>
+                    <td>Hard <strong style="color: var(--text)">prohibited</strong> classifiers before CDP</td>
+                  </tr>
+                  <tr>
+                    <td>Weak / missing bridge token</td>
+                    <td>Min length enforced; CSPRNG mint; no open mode</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="doc-section" id="claude-mapping">
+            <p class="kicker">03</p>
+            <h2>Claude for Chrome mapping</h2>
+            <p class="prose-p">Perfect intentionally mirrors Claude’s public permission model:</p>
+            <ul>
+              <li>Modes: <strong style="color: var(--text)">Manual</strong> (default) / <strong style="color: var(--text)">Auto</strong> / <strong style="color: var(--text)">Skip</strong></li>
+              <li>Per-site Allow once / Always allow / Deny</li>
+              <li>Protected actions (downloads, sensitive fields) still confirm</li>
+              <li>Prohibited actions never run (purchases, account create, trades, etc.)</li>
+            </ul>
+            <div class="doc-callout glass">
+              <strong>Gap</strong>
+              <p>
+                Claude ships trained cloud safety classifiers. Perfect v1 uses
+                <strong style="color: var(--text)">deterministic gates + heuristics + human approval</strong> only.
+              </p>
+            </div>
+          </article>
+
+          <article class="doc-section" id="residual">
+            <p class="kicker">04</p>
+            <h2>Residual risks</h2>
+            <ul>
+              <li>
+                Screenshots, <strong style="color: var(--text)">annotated screenshots</strong>, snapshots,
+                extracts, <strong style="color: var(--text)">console reads</strong>, and
+                <strong style="color: var(--text)">network logs</strong> can include sensitive on-screen, logged,
+                or URL data and flow into Cursor’s context. Query tokens in URLs are redacted when obvious;
+                headers with Authorization/cookies are not returned.
+              </li>
+              <li>
+                <strong style="color: var(--text)">File upload</strong> (<code>browser_upload</code>) sends
+                absolute local paths into the page via the debugger — only use on claimed Perfect tabs, never
+                crawl the disk, and prefer disposable test files.
+              </li>
+              <li>
+                <strong style="color: var(--text)">JS dialogs</strong> (<code>browser_handle_dialog</code>) may
+                carry prompt text into Cursor; sensitive prompt text is gated as protected.
+              </li>
+              <li>Heuristics can false-negative. Never use Skip mode on important accounts.</li>
+              <li>Prefer a separate Chrome profile without banking/email when experimenting.</li>
+              <li>
+                Tab close/focus only targets the Perfect claimed group by default — still treat close carefully.
+              </li>
+              <li>
+                This project is <strong style="color: var(--text)">not</strong> affiliated with Cursor,
+                Anysphere, or Anthropic.
+              </li>
+            </ul>
+          </article>
+
+          <article class="doc-section" id="follow-ups">
+            <p class="kicker">05</p>
+            <h2>Follow-ups (not in this release)</h2>
+            <ul>
+              <li>Page clipboard R/W and PDF print (high PII / Store surface)</li>
+              <li>Network request interception / response rewrite (MITM risk)</li>
+            </ul>
+          </article>
+
+          <article class="doc-section" id="reporting">
+            <p class="kicker">06</p>
+            <h2>Reporting</h2>
+            <p class="prose-p">
+              Open a
+              <a href="https://github.com/Gtarafdar/perfect/security/advisories" target="_blank" rel="noreferrer"
+                >GitHub Security Advisory</a
+              >
+              or private report on the repository. Do not file public issues for exploitable bugs until patched.
+            </p>
+            <p class="prose-p">
+              Source markdown:
+              <a href="https://github.com/Gtarafdar/perfect/blob/main/docs/SECURITY.md" target="_blank" rel="noreferrer"
+                >SECURITY.md</a
+              >
+              ·
+              <a href="privacy.html">Privacy policy</a>
+            </p>
+          </article>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap">
+        <div class="footer-grid">
+          <div>
+            <p class="footer-brand">Perfect</p>
+            <p class="prose-p">Cursor’s hands in Chrome. Free · MIT · unofficial.</p>
+          </div>
+          <div>
+            <p class="footer-col-title">Product</p>
+            <a href="./">Home</a>
+            <a href="./#download">Download</a>
+            <a href="playbook.html">Playbook</a>
+            <a href="./#capabilities">Capabilities</a>
+            <a href="./#demo">Demo prompts</a>
+          </div>
+          <div>
+            <p class="footer-col-title">Trust</p>
+            <a href="privacy.html">Privacy</a>
+            <a href="./#safety">Safety</a>
+            <a href="security.html">Security</a>
+            <a href="https://github.com/Gtarafdar/perfect/blob/main/LICENSE" target="_blank" rel="noreferrer">License</a>
+          </div>
+          <div>
+            <p class="footer-col-title">Connect</p>
+            <a href="./#support">Support</a>
+            <a href="./#maker">Maker</a>
+            <a href="https://github.com/Gtarafdar/perfect" target="_blank" rel="noreferrer">GitHub</a>
+            <a href="https://gtarafdar.com/donate" target="_blank" rel="noreferrer">Donate</a>
+            <a href="https://github.com/Gtarafdar/perfect/releases" target="_blank" rel="noreferrer">Releases</a>
+          </div>
+        </div>
+        <div class="footer-meta">
+          <span>Perfect · MIT © 2026 Gobinda Tarafdar</span>
+          <span>Not affiliated with Cursor / Anysphere</span>
+        </div>
+      </div>
+    </footer>
+    <script src="playbook.js" defer></script>
+  </body>
+</html>

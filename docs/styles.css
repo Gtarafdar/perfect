@@ -116,23 +116,9 @@ a:hover {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  border: 1px solid var(--line);
-  background: #0a0b0a;
-  position: relative;
+  display: block;
   flex-shrink: 0;
-}
-
-.brand-mark::before {
-  content: "";
-  position: absolute;
-  left: 7px;
-  top: 6px;
-  width: 0;
-  height: 0;
-  border-left: 9px solid var(--accent);
-  border-top: 5px solid transparent;
-  border-bottom: 12px solid transparent;
-  transform: rotate(-12deg);
+  object-fit: cover;
 }
 
 .nav-links {
@@ -1371,6 +1357,13 @@ h3 {
 .doc-section:first-child {
   border-top: 0;
   padding-top: 0;
+}
+
+.doc-section h3 {
+  margin: 1.35rem 0 0.55rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--text);
 }
 
 .doc-steps {

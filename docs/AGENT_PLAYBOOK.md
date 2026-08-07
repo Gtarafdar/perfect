@@ -59,4 +59,4 @@ Use `browser_extract` / `mode: "text"` snapshot. Do **not** reach for `document.
 
 ## Security
 
-Manual mode by default. Screenshots/console/network/annotations/uploads can include PII. See [SECURITY.md](./SECURITY.md).
+Manual mode by default. Screenshots/console/network/annotations/uploads can include PII. See [security](https://gtarafdar.github.io/perfect/security.html) ([SECURITY.md](./SECURITY.md)).

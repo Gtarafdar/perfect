@@ -1,5 +1,7 @@
 # Security
 
+**Public URL:** https://gtarafdar.github.io/perfect/security.html
+
 Perfect is a **local** Cursor ↔ Chrome bridge. The agent brain lives in Cursor; the extension executes browser tools. Page content is **untrusted**.
 
 ## Pairing (extension-first)
