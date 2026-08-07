@@ -48,15 +48,18 @@
   let typeTimer = null;
   let toolTimer = null;
   let demoHoldTimer = null;
+  let demoGen = 0;
   let demoAuto = !reduceMotion;
-  let demoVisible = true;
+  let demoVisible = false;
   let demoRunning = false;
 
   function clearDemoTimers() {
+    demoGen += 1;
     if (typeTimer) window.clearInterval(typeTimer);
     if (toolTimer) window.clearInterval(toolTimer);
     if (demoHoldTimer) window.clearTimeout(demoHoldTimer);
     typeTimer = toolTimer = demoHoldTimer = null;
+    demoRunning = false;
   }
 
   function renderTools(tools, active = -1) {
@@ -67,6 +70,15 @@
           `<span class="tool-chip${i === active ? " is-on" : ""}">${t}</span>`,
       )
       .join("");
+  }
+
+  function paintPromptStatic(index) {
+    if (!promptBox) return;
+    const entry = prompts[index] || prompts[0];
+    promptIndex = index;
+    promptBox.textContent = entry.text;
+    renderTools(entry.tools, entry.tools.length - 1);
+    setPicker(index, 0);
   }
 
   function escapeHtml(s) {
@@ -103,12 +115,16 @@
     });
   }
 
-  function scheduleNextPrompt() {
-    if (!demoAuto || !demoVisible) {
+  function scheduleNextPrompt(gen) {
+    if (!demoAuto || !demoVisible || gen !== demoGen) {
       demoRunning = false;
       return;
     }
     demoHoldTimer = window.setTimeout(() => {
+      if (gen !== demoGen || !demoAuto || !demoVisible) {
+        demoRunning = false;
+        return;
+      }
       promptIndex = (promptIndex + 1) % prompts.length;
       playPrompt(promptIndex);
     }, 2200);
@@ -117,11 +133,12 @@
   function playPrompt(index) {
     if (!promptBox) return;
     clearDemoTimers();
+    const gen = demoGen;
     demoRunning = true;
     promptIndex = index;
     const entry = prompts[index];
-    const typeMs = reduceMotion ? 0 : entry.text.length * 14;
-    const toolMs = reduceMotion ? 0 : entry.tools.length * 480;
+    const typeMs = reduceMotion ? 0 : Math.max(entry.text.length * 14, 400);
+    const toolMs = reduceMotion ? 0 : entry.tools.length * 520;
     const holdMs = 2200;
     setPicker(index, typeMs + toolMs + holdMs);
     renderTools(entry.tools, -1);
@@ -134,26 +151,46 @@
     }
 
     let i = 0;
-    promptBox.innerHTML = '<span class="cursor" aria-hidden="true"></span>';
-    typeTimer = window.setInterval(() => {
-      i += 1;
+    const paintType = () => {
+      if (gen !== demoGen) return;
       promptBox.innerHTML =
         escapeHtml(entry.text.slice(0, i)) +
         '<span class="cursor" aria-hidden="true"></span>';
-      if (i >= entry.text.length) {
+    };
+    paintType();
+
+    const finishType = () => {
+      if (gen !== demoGen) return;
+      if (typeTimer) {
         window.clearInterval(typeTimer);
         typeTimer = null;
-        let step = 0;
-        toolTimer = window.setInterval(() => {
-          renderTools(entry.tools, step);
-          step += 1;
-          if (step >= entry.tools.length) {
+      }
+      i = entry.text.length;
+      paintType();
+      let step = 0;
+      const tickTools = () => {
+        if (gen !== demoGen) return;
+        renderTools(entry.tools, step);
+        step += 1;
+        if (step >= entry.tools.length) {
+          if (toolTimer) {
             window.clearInterval(toolTimer);
             toolTimer = null;
-            scheduleNextPrompt();
           }
-        }, 480);
+          scheduleNextPrompt(gen);
+        }
+      };
+      tickTools();
+      if (entry.tools.length > 1) {
+        toolTimer = window.setInterval(tickTools, 520);
       }
+    };
+
+    typeTimer = window.setInterval(() => {
+      if (gen !== demoGen) return;
+      i += 1;
+      paintType();
+      if (i >= entry.text.length) finishType();
     }, 14);
   }
 
@@ -161,6 +198,7 @@
     demoAuto = false;
     clearDemoTimers();
     clearTabProgress(picker);
+    paintPromptStatic(promptIndex);
     window.setTimeout(() => {
       if (reduceMotion) return;
       demoAuto = true;
@@ -187,21 +225,44 @@
     }
   });
 
-  if ("IntersectionObserver" in window && demoSection) {
+  if (reduceMotion) {
+    demoVisible = true;
+    playPrompt(0);
+  } else if ("IntersectionObserver" in window && demoSection) {
+    paintPromptStatic(0);
     const demoIo = new IntersectionObserver(
       (entries) => {
-        demoVisible = entries.some((e) => e.isIntersecting);
-        if (demoVisible && demoAuto && !demoRunning && !reduceMotion) {
-          playPrompt(promptIndex);
+        const visible = entries.some((e) => e.isIntersecting && e.intersectionRatio >= 0.12);
+        if (visible === demoVisible) {
+          if (visible && demoAuto && !demoRunning) playPrompt(promptIndex);
+          return;
         }
-        if (!demoVisible) clearDemoTimers();
+        demoVisible = visible;
+        if (demoVisible && demoAuto && !demoRunning) {
+          playPrompt(promptIndex);
+        } else if (!demoVisible) {
+          clearDemoTimers();
+          paintPromptStatic(promptIndex);
+        }
       },
-      { threshold: 0.28 },
+      { threshold: [0, 0.12, 0.25, 0.4], rootMargin: "0px 0px -8% 0px" },
     );
     demoIo.observe(demoSection);
+    /* Kick once after layout — covers #demo hash land + first paint races */
+    window.requestAnimationFrame(() => {
+      const rect = demoSection.getBoundingClientRect();
+      const view = window.innerHeight || 0;
+      const visibleH = Math.min(rect.bottom, view) - Math.max(rect.top, 0);
+      const ratio = rect.height > 0 ? visibleH / rect.height : 0;
+      if (ratio >= 0.12 && demoAuto && !demoRunning) {
+        demoVisible = true;
+        playPrompt(promptIndex);
+      }
+    });
+  } else {
+    demoVisible = true;
+    playPrompt(0);
   }
-
-  playPrompt(0);
 
   /* Feature stack autoplay */
   const stackImg = document.getElementById("stackImg");
