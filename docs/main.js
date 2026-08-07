@@ -76,8 +76,31 @@
       .replace(/>/g, "&gt;");
   }
 
-  function setPicker(index) {
-    picker.forEach((b, i) => b.classList.toggle("is-active", i === index));
+  function clearTabProgress(buttons) {
+    buttons.forEach((b) => {
+      const bar = b.querySelector(".tab-progress");
+      if (!bar) return;
+      bar.classList.remove("is-running");
+      bar.style.animationDuration = "";
+    });
+  }
+
+  function runTabProgress(btn, durationMs) {
+    const bar = btn?.querySelector(".tab-progress");
+    if (!bar || reduceMotion || !durationMs) return;
+    bar.classList.remove("is-running");
+    bar.style.animationDuration = `${durationMs}ms`;
+    void bar.offsetWidth;
+    bar.classList.add("is-running");
+  }
+
+  function setPicker(index, durationMs) {
+    clearTabProgress(picker);
+    picker.forEach((b, i) => {
+      const on = i === index;
+      b.classList.toggle("is-active", on);
+      if (on) runTabProgress(b, durationMs);
+    });
   }
 
   function scheduleNextPrompt() {
@@ -96,8 +119,11 @@
     clearDemoTimers();
     demoRunning = true;
     promptIndex = index;
-    setPicker(index);
     const entry = prompts[index];
+    const typeMs = reduceMotion ? 0 : entry.text.length * 14;
+    const toolMs = reduceMotion ? 0 : entry.tools.length * 480;
+    const holdMs = 2200;
+    setPicker(index, typeMs + toolMs + holdMs);
     renderTools(entry.tools, -1);
 
     if (reduceMotion) {
@@ -191,11 +217,18 @@
     stackTimer = null;
   }
 
+  const STACK_DWELL = 4200;
+
   function showShot(index, { animate = true } = {}) {
     const shot = shots[index] || shots[0];
     if (!stackImg || !stackCaption) return;
     shotIndex = index;
-    stackBtns.forEach((b, i) => b.classList.toggle("is-active", i === index));
+    clearTabProgress(stackBtns);
+    stackBtns.forEach((b, i) => {
+      const on = i === index;
+      b.classList.toggle("is-active", on);
+      if (on && stackAuto && !reduceMotion) runTabProgress(b, STACK_DWELL);
+    });
 
     const apply = () => {
       stackImg.onerror = () => {
@@ -232,7 +265,7 @@
       }
       showShot((shotIndex + 1) % shots.length);
       scheduleNextShot();
-    }, 4200);
+    }, STACK_DWELL);
   }
 
   function pauseStackAuto(ms = 10000) {

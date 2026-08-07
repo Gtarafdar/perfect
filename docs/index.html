@@ -253,6 +253,18 @@
               and a Stop that actually stops.
             </p>
           </div>
+          <figure class="visual-frame">
+            <img
+              src="illustrations/illust-bridge.png"
+              width="1280"
+              height="720"
+              alt=""
+              role="presentation"
+              loading="lazy"
+            />
+          </figure>
+        </div>
+        <div class="wrap reveal" style="margin-top: 2rem">
           <div class="compare" aria-label="Without Perfect versus with Perfect">
             <div>
               <h3>Without Perfect</h3>
@@ -284,9 +296,18 @@
               navigate, wait, snapshot, press — on sites you approve.
             </p>
             <div class="prompt-picker" role="tablist" aria-label="Demo prompts">
-              <button type="button" class="is-active" data-prompt="0">Snapshot</button>
-              <button type="button" data-prompt="1">YouTube play</button>
-              <button type="button" data-prompt="2">Form fill</button>
+              <button type="button" class="is-active" data-prompt="0">
+                <span class="tab-label">Snapshot</span>
+                <span class="tab-progress" aria-hidden="true"></span>
+              </button>
+              <button type="button" data-prompt="1">
+                <span class="tab-label">YouTube play</span>
+                <span class="tab-progress" aria-hidden="true"></span>
+              </button>
+              <button type="button" data-prompt="2">
+                <span class="tab-label">Form fill</span>
+                <span class="tab-progress" aria-hidden="true"></span>
+              </button>
             </div>
           </div>
           <div class="glass demo-panel">
@@ -314,18 +335,21 @@
                 <button type="button" class="is-active" data-shot="0">
                   <strong>Welcome</strong>
                   Two-minute connect path. Open the side panel. Copy the setup prompt.
+                  <span class="tab-progress" aria-hidden="true"></span>
                 </button>
               </li>
               <li>
                 <button type="button" data-shot="1">
                   <strong>Linked</strong>
                   Bridge live. Manual by default. Stop in the Action HUD.
+                  <span class="tab-progress" aria-hidden="true"></span>
                 </button>
               </li>
               <li>
                 <button type="button" data-shot="2">
                   <strong>In the wild</strong>
                   Real sessions — forms, builders, research — inside the Perfect group.
+                  <span class="tab-progress" aria-hidden="true"></span>
                 </button>
               </li>
             </ul>
@@ -367,32 +391,44 @@
       </section>
 
       <section class="section section-tight" id="how">
-        <div class="wrap reveal">
-          <p class="kicker">How to connect</p>
-          <h2>About two minutes to Linked.</h2>
-          <ol class="timeline">
-            <li>
-              <strong>Install the zip</strong>
-              <p>
-                Download from
-                <a href="https://github.com/Gtarafdar/perfect/releases/latest">GitHub Releases</a>,
-                unzip, Chrome → <code>chrome://extensions</code> → Developer mode → Load unpacked →
-                select the folder with <code>manifest.json</code>.
-              </p>
-            </li>
-            <li>
-              <strong>Copy the setup prompt</strong>
-              <p>Open Perfect → Copy setup prompt for Cursor. It merges only the <code>perfect</code> MCP entry (<code>npx -y perfect-mcp</code>, GitHub fallback if needed).</p>
-            </li>
-            <li>
-              <strong>Enable in Cursor</strong>
-              <p>Settings → Tools &amp; MCP → enable <strong>perfect</strong> (toggle off/on if it was already on). Node.js 20+ required.</p>
-            </li>
-            <li>
-              <strong>Confirm Linked</strong>
-              <p>Side panel shows Linked to Cursor. Agent tabs appear in the green Perfect group. Reconnect pings without tearing down a live bridge.</p>
-            </li>
-          </ol>
+        <div class="wrap how-split reveal">
+          <div>
+            <p class="kicker">How to connect</p>
+            <h2>About two minutes to Linked.</h2>
+            <ol class="timeline">
+              <li>
+                <strong>Install the zip</strong>
+                <p>
+                  Download from
+                  <a href="https://github.com/Gtarafdar/perfect/releases/latest">GitHub Releases</a>,
+                  unzip, Chrome → <code>chrome://extensions</code> → Developer mode → Load unpacked →
+                  select the folder with <code>manifest.json</code>.
+                </p>
+              </li>
+              <li>
+                <strong>Copy the setup prompt</strong>
+                <p>Open Perfect → Copy setup prompt for Cursor. It merges only the <code>perfect</code> MCP entry (<code>npx -y perfect-mcp</code>, GitHub fallback if needed).</p>
+              </li>
+              <li>
+                <strong>Enable in Cursor</strong>
+                <p>Settings → Tools &amp; MCP → enable <strong>perfect</strong> (toggle off/on if it was already on). Node.js 20+ required.</p>
+              </li>
+              <li>
+                <strong>Confirm Linked</strong>
+                <p>Side panel shows Linked to Cursor. Agent tabs appear in the green Perfect group. Reconnect pings without tearing down a live bridge.</p>
+              </li>
+            </ol>
+          </div>
+          <figure class="visual-frame visual-frame-tall">
+            <img
+              src="illustrations/illust-tabs.png"
+              width="1024"
+              height="768"
+              alt=""
+              role="presentation"
+              loading="lazy"
+            />
+          </figure>
         </div>
       </section>
 
@@ -515,14 +551,26 @@
               because the gap was real.
             </p>
           </div>
-          <div class="glass panel-lg">
-            <h3>What I needed</h3>
-            <p class="prose-p">Same cookies. Same session. Visible agent tabs. Approvals I control. No Perfect cloud watching.</p>
-            <h3 style="margin-top: 1.25rem">Who it’s for</h3>
-            <p class="prose-p" style="margin-bottom: 0">
-              Anyone doing live R&amp;D with Cursor — marketers, builders, researchers — who wants real execution
-              in Chrome without losing the desk.
-            </p>
+          <div class="why-side">
+            <figure class="visual-frame">
+              <img
+                src="illustrations/illust-why.png"
+                width="1280"
+                height="720"
+                alt=""
+                role="presentation"
+                loading="lazy"
+              />
+            </figure>
+            <div class="glass panel-lg">
+              <h3>What I needed</h3>
+              <p class="prose-p">Same cookies. Same session. Visible agent tabs. Approvals I control. No Perfect cloud watching.</p>
+              <h3 style="margin-top: 1.25rem">Who it’s for</h3>
+              <p class="prose-p" style="margin-bottom: 0">
+                Anyone doing live R&amp;D with Cursor — marketers, builders, researchers — who wants real execution
+                in Chrome without losing the desk.
+              </p>
+            </div>
           </div>
         </div>
       </section>

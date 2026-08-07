@@ -593,20 +593,77 @@ h3 {
 
 .prompt-picker button {
   appearance: none;
+  position: relative;
+  overflow: hidden;
   border: 1px solid var(--line);
   background: transparent;
   color: var(--muted);
   border-radius: 999px;
-  padding: 0.4rem 0.75rem;
+  padding: 0.45rem 0.9rem;
   font: inherit;
   font-size: 0.82rem;
   cursor: pointer;
+  transition: color 0.3s var(--ease), border-color 0.3s var(--ease), background 0.3s var(--ease);
+}
+
+.prompt-picker button .tab-label {
+  position: relative;
+  z-index: 1;
 }
 
 .prompt-picker button.is-active,
 .prompt-picker button:hover {
   color: var(--text);
   border-color: rgba(244, 247, 240, 0.28);
+}
+
+.prompt-picker button.is-active {
+  color: #0a0b0a;
+  border-color: transparent;
+  background: var(--accent);
+}
+
+.tab-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: rgba(10, 11, 10, 0.35);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.prompt-picker button.is-active .tab-progress {
+  background: rgba(10, 11, 10, 0.45);
+}
+
+.stack-steps button .tab-progress {
+  height: 2px;
+  background: var(--accent);
+  opacity: 0.9;
+}
+
+.tab-progress.is-running {
+  animation: tabFill linear forwards;
+}
+
+@keyframes tabFill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-progress.is-running {
+    animation: none;
+    transform: scaleX(1);
+  }
 }
 
 .copy-hint {
@@ -652,9 +709,11 @@ h3 {
   background: transparent;
   color: var(--muted);
   border-radius: 12px;
-  padding: 0.85rem 0.95rem;
+  padding: 0.85rem 0.95rem 1rem;
   font: inherit;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
   transition: background 0.35s var(--ease), border-color 0.35s var(--ease), color 0.35s var(--ease);
 }
 
@@ -904,8 +963,62 @@ h3 {
 
 @media (min-width: 900px) {
   .why-grid {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   }
+}
+
+.why-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.how-split {
+  display: grid;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .how-split {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 2.5rem;
+  }
+}
+
+.visual-frame {
+  margin: 0;
+  min-width: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #050605;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.visual-frame img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  aspect-ratio: 16 / 10;
+}
+
+.visual-frame-tall img {
+  aspect-ratio: 4 / 3;
+}
+
+.bind .visual-frame {
+  align-self: stretch;
+}
+
+.bind .visual-frame img {
+  height: 100%;
+  min-height: 240px;
+  object-fit: cover;
 }
 
 .letter {
