@@ -190,11 +190,33 @@
               <a href="privacy.html">Privacy</a> ·
               <a href="https://github.com/Gtarafdar/perfect/blob/main/README.md" target="_blank" rel="noreferrer">README</a>
             </p>
-            <svg class="bridge-svg" viewBox="0 0 420 72" role="img" aria-label="Cursor connects through Perfect to Chrome">
-              <line class="path" x1="48" y1="36" x2="372" y2="36" />
+            <svg class="bridge-svg" viewBox="0 0 420 72" role="img" aria-label="Cursor connects through Perfect to Chrome" data-bridge>
+              <defs>
+                <linearGradient id="liquidGrad" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stop-color="#8fd410" />
+                  <stop offset="55%" stop-color="#b8ff3c" />
+                  <stop offset="100%" stop-color="#e8ff9a" />
+                </linearGradient>
+                <clipPath id="clip-n0"><circle cx="48" cy="36" r="12.5" /></clipPath>
+                <clipPath id="clip-n1"><circle cx="210" cy="36" r="14.5" /></clipPath>
+                <clipPath id="clip-n2"><circle cx="372" cy="36" r="12.5" /></clipPath>
+              </defs>
+              <line class="path" pathLength="100" x1="48" y1="36" x2="372" y2="36" />
+              <g class="liquid-layer" clip-path="url(#clip-n0)">
+                <path class="liquid" data-liquid="0" d="M34 70 V52 Q41 48 48 52 T62 52 V70 Z" fill="url(#liquidGrad)" />
+              </g>
+              <g class="liquid-layer" clip-path="url(#clip-n1)">
+                <path class="liquid" data-liquid="1" d="M194 72 V52 Q202 48 210 52 T226 52 V72 Z" fill="url(#liquidGrad)" />
+              </g>
+              <g class="liquid-layer" clip-path="url(#clip-n2)">
+                <path class="liquid" data-liquid="2" d="M358 70 V52 Q365 48 372 52 T386 52 V70 Z" fill="url(#liquidGrad)" />
+              </g>
               <circle class="node" cx="48" cy="36" r="14" />
               <circle class="node" cx="210" cy="36" r="16" />
               <circle class="node" cx="372" cy="36" r="14" />
+              <circle class="node-core" data-core="0" cx="48" cy="36" r="3.5" />
+              <circle class="node-core" data-core="1" cx="210" cy="36" r="4" />
+              <circle class="node-core" data-core="2" cx="372" cy="36" r="3.5" />
               <text x="48" y="66" text-anchor="middle">Cursor</text>
               <text x="210" y="66" text-anchor="middle">Perfect</text>
               <text x="372" y="66" text-anchor="middle">Chrome</text>

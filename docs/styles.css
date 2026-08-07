@@ -399,15 +399,37 @@ h3 {
   stroke: var(--accent);
   stroke-width: 1.5;
   stroke-linecap: round;
-  stroke-dasharray: 240;
-  stroke-dashoffset: 240;
-  animation: draw 1.6s var(--ease) 0.3s forwards;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  transition: none;
 }
 
 .bridge-svg .node {
   fill: var(--bg);
-  stroke: var(--line-strong);
+  stroke: rgba(184, 255, 60, 0.35);
   stroke-width: 1.5;
+  transition: stroke 0.25s var(--ease), fill 0.25s var(--ease);
+}
+
+.bridge-svg .node.is-lit {
+  stroke: var(--accent);
+}
+
+.bridge-svg .node-core {
+  fill: var(--accent);
+  opacity: 0;
+  transition: opacity 0.3s var(--ease);
+}
+
+.bridge-svg .node-core.is-on {
+  opacity: 1;
+}
+
+.bridge-svg .liquid {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  transition: none;
+  filter: url(#none);
 }
 
 .bridge-svg text {
@@ -416,16 +438,21 @@ h3 {
   font-size: 10px;
 }
 
-@keyframes draw {
-  to {
-    stroke-dashoffset: 0;
-  }
+.bridge-svg text.is-lit {
+  fill: var(--text);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .bridge-svg .path {
-    animation: none;
     stroke-dashoffset: 0;
+  }
+
+  .bridge-svg .node {
+    stroke: var(--accent);
+  }
+
+  .bridge-svg .node-core {
+    opacity: 1;
   }
 
   html {

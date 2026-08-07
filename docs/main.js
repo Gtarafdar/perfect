@@ -198,4 +198,79 @@
       }
     }
   });
+
+  /* Scroll-driven bridge: line draw + liquid circle fills */
+  const bridge = document.querySelector("[data-bridge]");
+  const hero = document.querySelector(".hero");
+  if (bridge && hero) {
+    const path = bridge.querySelector(".path");
+    const liquids = [...bridge.querySelectorAll("[data-liquid]")];
+    const cores = [...bridge.querySelectorAll("[data-core]")];
+    const nodes = [...bridge.querySelectorAll(".node")];
+    const labels = [...bridge.querySelectorAll("text")];
+    const thresholds = [0.08, 0.48, 0.92];
+    let raf = 0;
+    let waveT = 0;
+    let lastProgress = -1;
+
+    function liquidPath(cx, halfW, topY, bottomY, phase) {
+      const amp = 2.2;
+      const y1 = topY + Math.sin(phase) * amp;
+      const y2 = topY + Math.sin(phase + 1.1) * amp;
+      const y3 = topY + Math.sin(phase + 2.2) * amp;
+      return `M${cx - halfW} ${bottomY} V${y1} Q${cx - halfW / 2} ${y2 - 2} ${cx} ${y2} T${cx + halfW} ${y3} V${bottomY} Z`;
+    }
+
+    function paint(progress, phase) {
+      if (path) path.style.strokeDashoffset = String(100 - progress * 100);
+
+      liquids.forEach((el, i) => {
+        const local = Math.min(1, Math.max(0, (progress - thresholds[i]) / 0.22));
+        const cx = i === 0 ? 48 : i === 1 ? 210 : 372;
+        const halfW = i === 1 ? 16 : 14;
+        const bottom = i === 1 ? 54 : 52;
+        const top = bottom - local * (i === 1 ? 32 : 28);
+        el.setAttribute("d", liquidPath(cx, halfW, top, bottom, phase + i * 0.9));
+        el.style.opacity = local > 0.02 ? "1" : "0";
+        nodes[i]?.classList.toggle("is-lit", local > 0.35);
+        cores[i]?.classList.toggle("is-on", local > 0.55);
+        labels[i]?.classList.toggle("is-lit", local > 0.45);
+      });
+    }
+
+    function measureProgress() {
+      const rect = hero.getBoundingClientRect();
+      const span = Math.max(rect.height * 0.7, 240);
+      return Math.min(1, Math.max(0, -rect.top / span));
+    }
+
+    function frame() {
+      raf = 0;
+      const progress = measureProgress();
+      const waving = progress > thresholds[0] && progress < 1.001;
+      if (waving) waveT += 0.09;
+      if (Math.abs(progress - lastProgress) > 0.002 || waving) {
+        lastProgress = progress;
+        paint(progress, waveT);
+      }
+      if (waving) raf = window.requestAnimationFrame(frame);
+    }
+
+    function kick() {
+      if (reduceMotion) {
+        paint(1, 0);
+        return;
+      }
+      if (!raf) raf = window.requestAnimationFrame(frame);
+    }
+
+    if (reduceMotion) {
+      paint(1, 0);
+    } else {
+      paint(0, 0);
+      window.addEventListener("scroll", kick, { passive: true });
+      window.addEventListener("resize", kick, { passive: true });
+      kick();
+    }
+  }
 })();
