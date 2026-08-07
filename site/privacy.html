@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy policy — Perfect</title>
+    <meta
+      name="description"
+      content="Perfect privacy policy: local-only bridge token and preferences; no Perfect cloud backend in v0.2; tool results go only to your configured MCP client."
+    />
+    <link rel="canonical" href="https://gtarafdar.github.io/perfect/privacy.html" />
+    <meta name="theme-color" content="#0a0b0a" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://gtarafdar.github.io/perfect/privacy.html" />
+    <meta property="og:title" content="Privacy policy — Perfect" />
+    <meta
+      property="og:description"
+      content="Local-only Perfect bridge. No Perfect cloud in v0.2."
+    />
+    <meta property="og:image" content="https://gtarafdar.github.io/perfect/og-image.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="nav">
+      <div class="nav-inner">
+        <a class="brand" href="./">
+          <span class="brand-mark" aria-hidden="true"></span>
+          Perfect
+        </a>
+        <div class="nav-cta">
+          <a class="btn btn-ghost btn-sm" href="./">Home</a>
+          <a class="btn btn-primary btn-sm" href="https://github.com/Gtarafdar/perfect/releases/latest">Download</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="privacy-page wrap">
+      <p class="kicker">Legal</p>
+      <h1>Privacy policy</h1>
+      <p class="prose-p"><strong style="color: var(--text)">Last updated:</strong> 2026-08-07</p>
+      <p class="prose-p">
+        Perfect is a Chrome extension and local MCP server that lets AI agents (such as Cursor)
+        control browser tabs you approve.
+      </p>
+
+      <h2>Data we collect</h2>
+      <p class="prose-p">
+        Perfect does <strong style="color: var(--text)">not</strong> operate a Perfect cloud backend in v0.2.
+        Browsing data is not uploaded to Perfect servers.
+      </p>
+      <ul>
+        <li>
+          <strong style="color: var(--text)">On your machine:</strong> bridge auth token, permission preferences,
+          welcome-seen flag, local audit log (<code>chrome.storage</code> / local MCP config).
+        </li>
+        <li>
+          <strong style="color: var(--text)">To your MCP client (e.g. Cursor):</strong> tool results (snapshots,
+          screenshots, page text) flow only through the local MCP connection you configure. That client’s
+          privacy policy applies to that processing.
+        </li>
+      </ul>
+
+      <h2>Permissions</h2>
+      <p class="prose-p">
+        The extension requests <code>debugger</code>, <code>tabs</code>, <code>tabGroups</code>,
+        <code>scripting</code>, <code>storage</code>, <code>sidePanel</code>, and host access so it can
+        navigate and interact with pages you allow. See Chrome Web Store listing justifications in the repository.
+      </p>
+
+      <h2>Contact</h2>
+      <p class="prose-p">
+        Open an issue on the GitHub repository:
+        <a href="https://github.com/Gtarafdar/perfect">https://github.com/Gtarafdar/perfect</a>
+      </p>
+      <p class="prose-p">
+        For security-sensitive reports, prefer a private GitHub security advisory on that repository.
+        Email support: <a href="mailto:gobinda.ext1@gmail.com">gobinda.ext1@gmail.com</a>.
+      </p>
+
+      <p style="margin-top: 2.5rem">
+        <a href="./">← Back to Perfect</a>
+      </p>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-meta">
+        <span>Perfect · MIT © 2026 Gobinda Tarafdar</span>
+        <a href="./">Home</a>
+        <a href="https://github.com/Gtarafdar/perfect" target="_blank" rel="noreferrer">Source</a>
+      </div>
+    </footer>
+  </body>
+</html>

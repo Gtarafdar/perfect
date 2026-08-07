@@ -2,6 +2,8 @@
 
 **Last updated:** 2026-08-07
 
+**Public URL:** https://gtarafdar.github.io/perfect/privacy.html
+
 Perfect is a Chrome extension and local MCP server that lets AI agents (such as Cursor) control browser tabs you approve.
 
 ## Data we collect

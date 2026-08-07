@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Perfect — Give Cursor hands in your Chrome | Free local MCP bridge</title>
+    <meta
+      name="description"
+      content="Perfect is a free, unofficial Chrome + MCP bridge so Cursor can navigate, click, fill, and screenshot real Chrome tabs you approve — local-only, Manual permissions, no Perfect cloud."
+    />
+    <link rel="canonical" href="https://gtarafdar.github.io/perfect/" />
+    <meta name="theme-color" content="#0a0b0a" />
+    <meta name="author" content="Gobinda Tarafdar" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Perfect" />
+    <meta property="og:url" content="https://gtarafdar.github.io/perfect/" />
+    <meta property="og:title" content="Perfect — Cursor’s hands in Chrome" />
+    <meta
+      property="og:description"
+      content="Free local MCP bridge for Cursor and real Chrome. Visible Perfect tab group, Manual permissions, Stop anytime. Unofficial open source."
+    />
+    <meta property="og:image" content="https://gtarafdar.github.io/perfect/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Perfect — Cursor’s hands in Chrome" />
+    <meta
+      name="twitter:description"
+      content="Free local MCP bridge so Cursor can drive real Chrome tabs you approve."
+    />
+    <meta name="twitter:image" content="https://gtarafdar.github.io/perfect/og-image.jpg" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://gtarafdar.github.io/perfect/#website",
+            "url": "https://gtarafdar.github.io/perfect/",
+            "name": "Perfect",
+            "description": "Give Cursor hands in your Chrome via a free local MCP bridge.",
+            "inLanguage": "en",
+            "publisher": { "@id": "https://gtarafdar.github.io/perfect/#person" }
+          },
+          {
+            "@type": "WebPage",
+            "@id": "https://gtarafdar.github.io/perfect/#webpage",
+            "url": "https://gtarafdar.github.io/perfect/",
+            "name": "Perfect — Give Cursor hands in your Chrome",
+            "isPartOf": { "@id": "https://gtarafdar.github.io/perfect/#website" },
+            "about": { "@id": "https://gtarafdar.github.io/perfect/#software" },
+            "description": "Free unofficial Chrome extension + local MCP server so Cursor agents can control approved tabs in your real browser session.",
+            "primaryImageOfPage": {
+              "@type": "ImageObject",
+              "url": "https://gtarafdar.github.io/perfect/og-image.jpg",
+              "width": 1200,
+              "height": 630
+            },
+            "inLanguage": "en"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://gtarafdar.github.io/perfect/#software",
+            "name": "Perfect",
+            "applicationCategory": "BrowserApplication",
+            "operatingSystem": "Chrome",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "downloadUrl": "https://github.com/Gtarafdar/perfect/releases/latest",
+            "softwareVersion": "0.2.0",
+            "license": "https://github.com/Gtarafdar/perfect/blob/main/LICENSE",
+            "url": "https://gtarafdar.github.io/perfect/",
+            "image": "https://gtarafdar.github.io/perfect/og-image.jpg",
+            "description": "Unofficial open-source MCP bridge: Cursor navigates, clicks, fills, and screenshots real Chrome tabs you approve — local token, Manual permissions, no Perfect cloud.",
+            "author": { "@id": "https://gtarafdar.github.io/perfect/#person" },
+            "publisher": { "@id": "https://gtarafdar.github.io/perfect/#person" }
+          },
+          {
+            "@type": "Person",
+            "@id": "https://gtarafdar.github.io/perfect/#person",
+            "name": "Gobinda Tarafdar",
+            "url": "https://gtarafdar.com/",
+            "sameAs": [
+              "https://github.com/Gtarafdar",
+              "https://x.com/Gtarafdarr",
+              "https://www.linkedin.com/in/gobinda-tarafdar/"
+            ],
+            "jobTitle": "Product Marketing Specialist",
+            "worksFor": {
+              "@type": "Organization",
+              "name": "WPBakery",
+              "url": "https://wpbakery.com/"
+            },
+            "image": "https://gtarafdar.github.io/perfect/maker.jpg"
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://gtarafdar.github.io/perfect/#faq",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is Perfect affiliated with Cursor?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. Perfect is unofficial open source and is not affiliated with Cursor, Anysphere, Google, or Anthropic."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does Perfect send my browsing data to a Perfect cloud?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. There is no Perfect cloud backend in v0.2. Tool results stay on your machine and go only to the MCP client you configure (for example Cursor)."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How do I install Perfect?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Download the extension zip from GitHub Releases, Load unpacked in chrome://extensions, copy the setup prompt into Cursor, enable the perfect MCP server, and wait for Linked. Node.js 20+ is required for the local MCP server."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is Perfect free?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. MIT-licensed. Free to use, fork, and share. Stars and donations help keep the workshop going."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="nav">
+      <div class="nav-inner">
+        <a class="brand" href="#top" aria-label="Perfect home">
+          <span class="brand-mark" aria-hidden="true"></span>
+          Perfect
+        </a>
+        <ul class="nav-links" aria-label="Primary">
+          <li><a href="#demo">Demo</a></li>
+          <li><a href="#capabilities">Capabilities</a></li>
+          <li><a href="#download">Download</a></li>
+          <li><a href="#why">Why</a></li>
+          <li><a href="#support">Support</a></li>
+        </ul>
+        <div class="nav-cta">
+          <a class="btn btn-ghost btn-sm" href="https://github.com/Gtarafdar/perfect" target="_blank" rel="noreferrer">Star</a>
+          <a class="btn btn-primary btn-sm" href="https://github.com/Gtarafdar/perfect/releases/latest">Download</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top">
+        <div class="hero-bg" aria-hidden="true"></div>
+        <div class="wrap hero-grid">
+          <div>
+            <div class="hero-meta">
+              <span class="chip chip-live">Local · MIT · v0.2</span>
+              <span class="chip">Chrome Web Store · coming soon</span>
+            </div>
+            <h1>Perfect</h1>
+            <p class="lede">
+              Cursor’s hands in Chrome — a free, unofficial MCP bridge so agents work in your
+              real browser session, in a visible tab group you can still use.
+            </p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="https://github.com/Gtarafdar/perfect/releases/latest">Download zip</a>
+              <a class="btn btn-ghost" href="https://github.com/Gtarafdar/perfect" target="_blank" rel="noreferrer">★ Star on GitHub</a>
+              <a class="btn btn-ghost" href="https://gtarafdar.com/donate" target="_blank" rel="noreferrer">Donate</a>
+            </div>
+            <p class="hero-note">
+              Not affiliated with Cursor, Anysphere, Google, or Anthropic.
+              <a href="privacy.html">Privacy</a> ·
+              <a href="https://github.com/Gtarafdar/perfect/blob/main/README.md" target="_blank" rel="noreferrer">README</a>
+            </p>
+            <svg class="bridge-svg" viewBox="0 0 420 72" role="img" aria-label="Cursor connects through Perfect to Chrome">
+              <line class="path" x1="48" y1="36" x2="372" y2="36" />
+              <circle class="node" cx="48" cy="36" r="14" />
+              <circle class="node" cx="210" cy="36" r="16" />
+              <circle class="node" cx="372" cy="36" r="14" />
+              <text x="48" y="66" text-anchor="middle">Cursor</text>
+              <text x="210" y="66" text-anchor="middle">Perfect</text>
+              <text x="372" y="66" text-anchor="middle">Chrome</text>
+            </svg>
+          </div>
+          <figure class="glass hero-stage reveal">
+            <img
+              src="screenshots/linked.png"
+              width="1024"
+              height="772"
+              alt="Perfect side panel showing Linked to Cursor with Manual permission mode"
+            />
+          </figure>
+        </div>
+      </section>
+
+      <hr class="hairline wrap" />
+
+      <section class="section" id="bind">
+        <div class="wrap bind reveal">
+          <div>
+            <p class="kicker">The bind</p>
+            <h2>Cursor is brilliant in the repo. The browser was the missing limb.</h2>
+            <p class="prose-p">
+              Out of the box, Cursor doesn’t give you trustworthy hands in the Chrome you already live in —
+              cookies, SSO, the messy real web. Stock agent browser paths often lean on broad Mac automation
+              permissions, then hog the machine while the run is live. Hard to ship real R&amp;D when your
+              desk is held hostage.
+            </p>
+            <p class="prose-p">
+              Perfect is the bridge I needed: local MCP, your real Chrome, a green
+              <strong style="color: var(--text)">Perfect</strong> tab group you can see, Manual approvals by default,
+              and a Stop that actually stops.
+            </p>
+          </div>
+          <div class="compare" aria-label="Without Perfect versus with Perfect">
+            <div>
+              <h3>Without Perfect</h3>
+              <ul>
+                <li>No native Cursor ↔ Chrome MCP path for your logged-in session</li>
+                <li>OS-level automation that fights you for the desktop</li>
+                <li>Guessing whether the agent is safe on checkout or Buy now</li>
+              </ul>
+            </div>
+            <div class="with">
+              <h3>With Perfect</h3>
+              <ul>
+                <li>Local token bridge · Linked in the side panel</li>
+                <li>Agent work stays in a visible Perfect tab group</li>
+                <li>Manual / Auto / Skip with prohibited actions hard-blocked</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="demo" style="padding-top: 0">
+        <div class="wrap demo-shell reveal">
+          <div>
+            <p class="kicker">Try a prompt</p>
+            <h2>Paste once. Watch the chain.</h2>
+            <p class="prose-p">
+              Perfect doesn’t invent a special search API. Agents chain real tools —
+              navigate, wait, snapshot, press — on sites you approve.
+            </p>
+            <div class="prompt-picker" role="tablist" aria-label="Demo prompts">
+              <button type="button" class="is-active" data-prompt="0">Snapshot</button>
+              <button type="button" data-prompt="1">YouTube play</button>
+              <button type="button" data-prompt="2">Form fill</button>
+            </div>
+          </div>
+          <div class="glass demo-panel">
+            <pre class="prompt-box" id="promptBox" aria-live="polite"></pre>
+            <div class="tool-row" id="toolRow" aria-hidden="true"></div>
+            <div class="hero-actions" style="margin-top: 1rem">
+              <button type="button" class="btn btn-primary btn-sm" id="copyPrompt">Copy prompt</button>
+              <a class="btn btn-ghost btn-sm" href="https://github.com/Gtarafdar/perfect/blob/main/docs/AGENT_PLAYBOOK.md" target="_blank" rel="noreferrer">Playbook</a>
+            </div>
+            <p class="copy-hint" id="copyHint"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="capabilities">
+        <div class="wrap stack">
+          <div class="stack-rail reveal">
+            <p class="kicker">Product walkthrough</p>
+            <h2>See the instrument, not the pitch deck.</h2>
+            <p class="prose-p">
+              Welcome on first install. Linked when the bridge is live. Agent tabs grouped so you keep ownership of the desk.
+            </p>
+            <ul class="stack-steps" id="stackSteps">
+              <li>
+                <button type="button" class="is-active" data-shot="0">
+                  <strong>Welcome</strong>
+                  Two-minute connect path. Open the side panel. Copy the setup prompt.
+                </button>
+              </li>
+              <li>
+                <button type="button" data-shot="1">
+                  <strong>Linked</strong>
+                  Bridge live. Manual by default. Stop in the Action HUD.
+                </button>
+              </li>
+              <li>
+                <button type="button" data-shot="2">
+                  <strong>In the wild</strong>
+                  Real sessions — forms, builders, research — inside the Perfect group.
+                </button>
+              </li>
+            </ul>
+          </div>
+          <figure class="glass stack-panel reveal">
+            <img id="stackImg" src="screenshots/welcome.png" width="1024" height="772" alt="Perfect welcome page with connect steps" />
+            <figcaption class="stack-caption" id="stackCaption">
+              First-run welcome — unofficial disclaimer, connect steps, safety notes.
+            </figcaption>
+          </figure>
+        </div>
+
+        <div class="wrap matrix reveal" style="margin-top: 3rem">
+          <article>
+            <h3>Tabs</h3>
+            <code>browser_status · browser_tabs · browser_navigate · browser_back · browser_forward · browser_tab_focus · browser_tab_close</code>
+          </article>
+          <article>
+            <h3>Read</h3>
+            <code>browser_snapshot · browser_extract · browser_console · browser_network · browser_wait</code>
+          </article>
+          <article>
+            <h3>Act</h3>
+            <code>browser_click · browser_hover · browser_drag · browser_fill · browser_type · browser_select · browser_upload · browser_press · browser_scroll · browser_handle_dialog</code>
+          </article>
+          <article>
+            <h3>See</h3>
+            <code>browser_screenshot — annotations, fullPage, clip</code>
+          </article>
+          <article>
+            <h3>Guarded</h3>
+            <code>browser_evaluate · browser_propose_plan · browser_stop</code>
+          </article>
+          <article>
+            <h3>Safety defaults</h3>
+            <code>Manual mode · protected pauses · Buy now / checkout prohibited · local token · no Perfect cloud</code>
+          </article>
+        </div>
+      </section>
+
+      <section class="section section-tight" id="how">
+        <div class="wrap reveal">
+          <p class="kicker">How to connect</p>
+          <h2>About two minutes to Linked.</h2>
+          <ol class="timeline">
+            <li>
+              <strong>Install the zip</strong>
+              <p>
+                Download from
+                <a href="https://github.com/Gtarafdar/perfect/releases/latest">GitHub Releases</a>,
+                unzip, Chrome → <code>chrome://extensions</code> → Developer mode → Load unpacked →
+                select the folder with <code>manifest.json</code>.
+              </p>
+            </li>
+            <li>
+              <strong>Copy the setup prompt</strong>
+              <p>Open Perfect → Copy setup prompt for Cursor. It merges only the <code>perfect</code> MCP entry (<code>npx -y perfect-mcp</code>, GitHub fallback if needed).</p>
+            </li>
+            <li>
+              <strong>Enable in Cursor</strong>
+              <p>Settings → Tools &amp; MCP → enable <strong>perfect</strong> (toggle off/on if it was already on). Node.js 20+ required.</p>
+            </li>
+            <li>
+              <strong>Confirm Linked</strong>
+              <p>Side panel shows Linked to Cursor. Agent tabs appear in the green Perfect group. Reconnect pings without tearing down a live bridge.</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="section" id="safety">
+        <div class="wrap glass panel-lg reveal">
+          <p class="kicker">Permission &amp; safety</p>
+          <h2>You stay in the loop.</h2>
+          <p class="prose-p">
+            Modeled on Claude-for-Chrome-style gates. Default is Manual. Skip is dangerous — prohibited actions still hard-block.
+          </p>
+          <dl class="modes">
+            <div>
+              <dt>Manual</dt>
+              <dd>Ask before acting. Safest default for live R&amp;D.</dd>
+            </div>
+            <div>
+              <dt>Auto</dt>
+              <dd>Fewer prompts on trusted sites; protected and new hosts still pause.</dd>
+            </div>
+            <div>
+              <dt>Skip</dt>
+              <dd>Dangerous. Checkout / Buy now / Pay now stay prohibited.</dd>
+            </div>
+          </dl>
+          <p class="prose-p" style="margin-top: 1.5rem; margin-bottom: 0">
+            <strong style="color: var(--text)">Stop</strong> in the side panel or on-page HUD cancels work and detaches the debugger.
+            The <code>debugger</code> permission is only for local Chrome DevTools Protocol automation — not remote control by a Perfect server.
+          </p>
+        </div>
+      </section>
+
+      <section class="section section-tight" id="limits">
+        <div class="wrap reveal">
+          <p class="kicker">Honest limitations</p>
+          <h2>Useful without overclaiming.</h2>
+          <ul class="limit-list">
+            <li>
+              <strong>Heavy SPAs can be flaky to snapshot</strong>
+              <p>YouTube and similar sites may need navigate + wait + screenshot + keyboard (<code>k</code>) instead of a perfect accessibility tree.</p>
+            </li>
+            <li>
+              <strong>No dedicated browser_search API</strong>
+              <p>Search is navigate + fill + click like a person. That’s intentional.</p>
+            </li>
+            <li>
+              <strong>Chrome MV3 + Node locally</strong>
+              <p>You need Node.js 20+ for the MCP server via npx. Extension alone is not enough.</p>
+            </li>
+            <li>
+              <strong>Chrome Web Store pending</strong>
+              <p>Ship via GitHub Releases today. CWS listing is coming soon — store draft lives in the repo.</p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section" id="privacy">
+        <div class="wrap reveal">
+          <p class="kicker">Privacy by default</p>
+          <h2>No Perfect cloud in v0.2.</h2>
+          <div class="privacy-grid">
+            <div>
+              <h3>On your machine</h3>
+              <p>Bridge token, permission preferences, welcome-seen flag, local audit log.</p>
+            </div>
+            <div>
+              <h3>To your MCP client</h3>
+              <p>Snapshots and page text flow only over the local MCP connection you configure. That client’s policy applies next.</p>
+            </div>
+            <div>
+              <h3>Never by Perfect</h3>
+              <p>No Perfect analytics SDK. No sale of personal data. Full policy on the privacy page.</p>
+            </div>
+          </div>
+          <p style="margin-top: 1.25rem">
+            <a href="privacy.html">Read the privacy policy →</a>
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="download">
+        <div class="wrap glass download-band reveal">
+          <div>
+            <p class="kicker">Download</p>
+            <h2>Free forever. Install from GitHub Releases.</h2>
+            <ol class="install-ol">
+              <li>Download <code>perfect-extension.zip</code> from the latest release.</li>
+              <li>Unzip it.</li>
+              <li>Chrome → <code>chrome://extensions</code> → Developer mode → Load unpacked.</li>
+              <li>Select the folder that contains <code>manifest.json</code>.</li>
+              <li>Copy setup prompt → paste in Cursor → enable <strong>perfect</strong> → Linked.</li>
+            </ol>
+          </div>
+          <div class="download-actions">
+            <a class="btn btn-primary" href="https://github.com/Gtarafdar/perfect/releases/latest">Download latest release</a>
+            <a class="btn btn-ghost" href="https://github.com/Gtarafdar/perfect" target="_blank" rel="noreferrer">★ Star the repo</a>
+            <a class="btn btn-ghost" href="https://gtarafdar.com/donate" target="_blank" rel="noreferrer">Donate</a>
+            <span class="chip" style="justify-content: center">Chrome Web Store · coming soon</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="why">
+        <div class="wrap why-grid reveal">
+          <div class="letter">
+            <p class="kicker">Why I built this</p>
+            <h2>I needed hands in Chrome without surrendering the Mac.</h2>
+            <p>
+              I use Cursor every day. The moment the work left the repo — live forms, WPBakery builders,
+              real research tabs, media checks — I hit the same wall: there was no clean, local, permissioned
+              bridge into the browser I already trust.
+            </p>
+            <p>
+              The alternatives asked for heavy OS permissions, then made the machine feel occupied while the
+              agent ran. That’s fine for a demo. It’s terrible for shipping.
+            </p>
+            <p>
+              So I built Perfect: MCP on localhost, a token you own, a side panel that says Linked, a green tab
+              group you can see, Manual by default, Stop when you need it. Free, open source, unofficial —
+              because the gap was real.
+            </p>
+          </div>
+          <div class="glass panel-lg">
+            <h3>What I needed</h3>
+            <p class="prose-p">Same cookies. Same session. Visible agent tabs. Approvals I control. No Perfect cloud watching.</p>
+            <h3 style="margin-top: 1.25rem">Who it’s for</h3>
+            <p class="prose-p" style="margin-bottom: 0">
+              Anyone doing live R&amp;D with Cursor — marketers, builders, researchers — who wants real execution
+              in Chrome without losing the desk.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="maker">
+        <div class="wrap maker reveal">
+          <img src="maker.jpg" width="140" height="140" alt="Portrait of Gobinda Tarafdar" />
+          <div>
+            <p class="kicker">About the maker</p>
+            <h2>Gobinda Tarafdar</h2>
+            <p class="prose-p">
+              WordPress product marketer · stubborn problem-solver · lifelong Harry Potter devotee
+            </p>
+            <p class="prose-p">
+              By day I am the Product Marketing Specialist at
+              <a href="https://wpbakery.com/" target="_blank" rel="noreferrer">WPBakery</a>.
+              Before that, I helped a single plugin cross <strong style="color: var(--text)">400,000+</strong>
+              active users. When the day-job owl flies home, I tinker on my own workshop of spells.
+            </p>
+            <div class="maker-links">
+              <a href="https://x.com/Gtarafdarr" target="_blank" rel="noreferrer">X / Twitter</a>
+              <a href="https://www.linkedin.com/in/gobinda-tarafdar/" target="_blank" rel="noreferrer">LinkedIn</a>
+              <a href="https://github.com/Gtarafdar" target="_blank" rel="noreferrer">GitHub</a>
+              <a href="https://gtarafdar.com/donate" target="_blank" rel="noreferrer">Donate</a>
+              <a href="https://gtarafdar.com/" target="_blank" rel="noreferrer">More about me</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-tight" id="workshop">
+        <div class="wrap reveal">
+          <p class="kicker">Also from the workshop</p>
+          <h2>Other tools from the same bench.</h2>
+          <p class="prose-p">Free, local-first where it counts.</p>
+          <ul class="workshop">
+            <li>
+              <a href="https://gtarafdar.github.io/last-sign-in/" target="_blank" rel="noreferrer">Last Sign-in</a>
+              <span>Remembers how you signed in — never passwords or cookies</span>
+            </li>
+            <li>
+              <a href="https://gtarafdar.github.io/porter/" target="_blank" rel="noreferrer">Porter</a>
+              <span>Copy folders between your Macs like Finder · MCP for AI IDEs</span>
+            </li>
+            <li>
+              <a href="https://github.com/Gtarafdar" target="_blank" rel="noreferrer">Aligner</a>
+              <span>Free local Chrome toolkit for design, measure, and WordPress</span>
+            </li>
+            <li>
+              <a href="https://github.com/Gtarafdar" target="_blank" rel="noreferrer">FinderFlow</a>
+              <span>Mac file manager with built-in editor</span>
+            </li>
+            <li>
+              <a href="https://github.com/Gtarafdar" target="_blank" rel="noreferrer">Slack Agent Bridge</a>
+              <span>MCP bridge for Cursor and Claude</span>
+            </li>
+            <li>
+              <a href="https://github.com/Gtarafdar" target="_blank" rel="noreferrer">Auto AFK Slack</a>
+              <span>Lock your Mac, Slack goes AFK</span>
+            </li>
+            <li>
+              <a href="https://github.com/Gtarafdar" target="_blank" rel="noreferrer">Slack Teammate Time</a>
+              <span>Teammate local times inline in Slack</span>
+            </li>
+            <li>
+              <a href="https://github.com/Gtarafdar" target="_blank" rel="noreferrer">Broken Link Checker</a>
+              <span>Find broken links without leaving the page</span>
+            </li>
+            <li>
+              <a href="https://github.com/Gtarafdar" target="_blank" rel="noreferrer">Docscriber</a>
+              <span>Documentation, conjured</span>
+            </li>
+            <li>
+              <a href="https://github.com/Gtarafdar" target="_blank" rel="noreferrer">TheRecaller</a>
+              <span>A memory charm for what you forget online</span>
+            </li>
+            <li>
+              <a href="https://github.com/Gtarafdar" target="_blank" rel="noreferrer">TheEditra</a>
+              <span>AI video editor</span>
+            </li>
+            <li>
+              <a href="https://github.com/Gtarafdar" target="_blank" rel="noreferrer">The Quill Press</a>
+              <span>Tech news, Daily Prophet style</span>
+            </li>
+            <li>
+              <a href="https://github.com/Gtarafdar" target="_blank" rel="noreferrer">Costlas</a>
+              <span>Cost of living for 140+ countries</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section" id="faq">
+        <div class="wrap reveal">
+          <p class="kicker">FAQ</p>
+          <h2>Straight answers.</h2>
+          <div class="faq">
+            <details>
+              <summary>Is Perfect affiliated with Cursor?</summary>
+              <p>No. Unofficial open source — not affiliated with Cursor, Anysphere, Google, or Anthropic.</p>
+            </details>
+            <details>
+              <summary>Does Perfect upload my browsing to a cloud?</summary>
+              <p>No Perfect cloud in v0.2. Token and preferences stay local. Tool results go only to your configured MCP client.</p>
+            </details>
+            <details>
+              <summary>What do I need besides the extension?</summary>
+              <p>Node.js 20+ so Cursor can run <code>npx -y perfect-mcp</code> (GitHub fallback if the npm package isn’t published yet).</p>
+            </details>
+            <details>
+              <summary>Is the Chrome Web Store listing live?</summary>
+              <p>Not yet — coming soon. Install from GitHub Releases for now. Store draft: <code>docs/store-listing.md</code> in the repo.</p>
+            </details>
+            <details>
+              <summary>License?</summary>
+              <p>MIT. Free to use, fork, and share.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="support">
+        <div class="wrap reveal">
+          <p class="kicker">Support</p>
+          <h2>Questions, bugs, or store review notes.</h2>
+          <p class="prose-p">
+            Share this page:
+            <a href="https://gtarafdar.github.io/perfect/#support">gtarafdar.github.io/perfect/#support</a>
+          </p>
+          <div class="support-grid">
+            <button type="button" class="support-item" id="copyEmail" data-email="gobinda.ext1@gmail.com">
+              <strong>Email</strong>
+              <span id="copyEmailHint">Click to copy</span>
+            </button>
+            <a class="support-item" href="https://www.linkedin.com/in/gobinda-tarafdar/" target="_blank" rel="noreferrer">
+              <strong>LinkedIn</strong>
+              <span>Message Gobinda Tarafdar</span>
+            </a>
+            <a class="support-item" href="https://x.com/Gtarafdarr" target="_blank" rel="noreferrer">
+              <strong>X / Twitter</strong>
+              <span>@Gtarafdarr</span>
+            </a>
+            <a class="support-item" href="https://github.com/Gtarafdar/perfect/issues" target="_blank" rel="noreferrer">
+              <strong>GitHub</strong>
+              <span>Open an issue</span>
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap">
+        <h2>If Perfect gives Cursor the hands you were missing</h2>
+        <p class="prose-p">
+          MIT-licensed. No ads. No Perfect cloud. A GitHub star helps others find it. A small donation keeps the workshop lit.
+        </p>
+        <div class="footer-cta">
+          <a class="btn btn-primary" href="https://github.com/Gtarafdar/perfect" target="_blank" rel="noreferrer">★ Star on GitHub</a>
+          <a class="btn btn-ghost" href="https://gtarafdar.com/donate" target="_blank" rel="noreferrer">Donate</a>
+          <a class="btn btn-ghost" href="#support">Contact support</a>
+          <a class="btn btn-ghost" href="https://github.com/Gtarafdar/perfect/releases/latest">Download</a>
+        </div>
+        <div class="footer-meta">
+          <span>Perfect · MIT © 2026 Gobinda Tarafdar</span>
+          <a href="privacy.html">Privacy</a>
+          <a href="https://github.com/Gtarafdar/perfect/blob/main/LICENSE" target="_blank" rel="noreferrer">License</a>
+          <a href="https://github.com/Gtarafdar/perfect/releases" target="_blank" rel="noreferrer">Releases</a>
+          <a href="#maker">Maker</a>
+          <a href="https://github.com/Gtarafdar/perfect" target="_blank" rel="noreferrer">Source</a>
+        </div>
+      </div>
+    </footer>
+
+    <script src="main.js" defer></script>
+  </body>
+</html>

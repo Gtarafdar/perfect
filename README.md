@@ -6,9 +6,11 @@ Unofficial open-source MCP bridge: Cursor agents navigate, click, fill, screensh
 
 > Not affiliated with Cursor, Anysphere, or Anthropic.
 
-**Status: v0.2 ready** — Linked bridge is stable, ~26 tools, live smoke (forms, builders, YouTube search→play). See [demo script](docs/demo-script.md) · [agent playbook](docs/AGENT_PLAYBOOK.md).
+**Status: v0.2 ready** — Linked bridge is stable, ~26 tools, live smoke (forms, builders, YouTube search→play).
 
-[Security](docs/SECURITY.md) · [Capability report](docs/capability-report.md) · [Eval for Cursor](docs/EVAL_FOR_CURSOR.md) · [Share kit](docs/share/social-copy.md)
+**Website:** [gtarafdar.github.io/perfect](https://gtarafdar.github.io/perfect/) · [Download zip](https://github.com/Gtarafdar/perfect/releases/latest) · Chrome Web Store coming soon
+
+[Security](docs/SECURITY.md) · [Capability report](docs/capability-report.md) · [Eval for Cursor](docs/EVAL_FOR_CURSOR.md) · [Share kit](docs/share/social-copy.md) · [Privacy](https://gtarafdar.github.io/perfect/privacy.html)
 
 ---
 

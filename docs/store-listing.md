@@ -73,7 +73,7 @@ No. All extension code ships inside the store package.
 
 ## Privacy policy URL
 
-Host [`docs/privacy.md`](../privacy.md) at a public HTTPS URL before submit (GitHub Pages recommended). Paste that URL into CWS.
+Host at **https://gtarafdar.github.io/perfect/privacy.html** (also [`docs/privacy.md`](../privacy.md)). Paste that URL into CWS.
 
 ## Disclaimer
 

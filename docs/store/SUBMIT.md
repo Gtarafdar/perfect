@@ -6,7 +6,7 @@ Agent prepares code/docs/zip. You perform account + upload.
 
 1. [ ] `npm test` + `npm run test:e2e` + `npm run test:e2e:extension` + `npm run lint` green
 2. [ ] `npm run pack:extension` → `perfect-extension.zip` (no `.map`, no secrets)
-3. [ ] Privacy policy published at public HTTPS URL; link in listing + welcome
+3. [ ] Privacy policy published at public HTTPS URL — https://gtarafdar.github.io/perfect/privacy.html ; link in listing + welcome
 4. [ ] Screenshots captured per [`ASSETS.md`](./ASSETS.md)
 5. [ ] Listing text from [`docs/store-listing.md`](../store-listing.md) — no overclaims
 6. [ ] Optional: `npm publish` for `perfect-mcp@0.2.0` (see [`docs/publish-npm.md`](../publish-npm.md))
