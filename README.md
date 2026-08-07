@@ -35,7 +35,7 @@ Node.js 20+ is required locally for the MCP server.
 
 > Using Perfect: search YouTube for “Saiyaara song”, open the official YRF title track, and play it.
 
-Agent pattern: `browser_navigate` (search or watch URL) → `browser_wait` / screenshot → `browser_press` `k` if needed. Full recipes in the [playbook](docs/AGENT_PLAYBOOK.md#search--play-media-youtube).
+Agent pattern: `browser_navigate` (search or watch URL) → `browser_wait` / screenshot → `browser_press` `k` if needed. Full recipes in the [playbook](https://gtarafdar.github.io/perfect/playbook.html#media).
 
 ## Permission modes (default: Manual)
 
@@ -55,7 +55,7 @@ Agent pattern: `browser_navigate` (search or watch URL) → `browser_wait` / scr
 | See | `browser_screenshot` (annotations, fullPage, clip) |
 | Guarded | `browser_evaluate` `browser_propose_plan` `browser_stop` |
 
-See [Agent playbook](docs/AGENT_PLAYBOOK.md) for research / media / WPBakery / scrape workflows.
+See [Agent playbook](https://gtarafdar.github.io/perfect/playbook.html) for research / media / WPBakery / scrape workflows.
 
 ## Develop
 

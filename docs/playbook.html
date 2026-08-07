@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent playbook — Perfect | Use Cursor hands in Chrome</title>
+    <meta
+      name="description"
+      content="Perfect agent playbook: research, YouTube search→play, UI debug, WPBakery iframes, drag/upload/network/dialogs, tab hygiene, and security — for Cursor agents in real Chrome."
+    />
+    <link rel="canonical" href="https://gtarafdar.github.io/perfect/playbook.html" />
+    <meta name="theme-color" content="#0a0b0a" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://gtarafdar.github.io/perfect/playbook.html" />
+    <meta property="og:title" content="Agent playbook — Perfect" />
+    <meta
+      property="og:description"
+      content="Recipes for Cursor agents using Perfect: research, media, builders, uploads, and safety."
+    />
+    <meta property="og:image" content="https://gtarafdar.github.io/perfect/og-image.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "headline": "Agent playbook — using Perfect from Cursor",
+        "description": "How Cursor agents should use Perfect browser tools in real Chrome.",
+        "url": "https://gtarafdar.github.io/perfect/playbook.html",
+        "image": "https://gtarafdar.github.io/perfect/og-image.jpg",
+        "author": { "@type": "Person", "name": "Gobinda Tarafdar" },
+        "publisher": { "@type": "Person", "name": "Gobinda Tarafdar" },
+        "dateModified": "2026-08-07"
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="nav">
+      <div class="nav-inner">
+        <a class="brand" href="./" aria-label="Perfect home">
+          <span class="brand-mark" aria-hidden="true"></span>
+          Perfect
+        </a>
+        <ul class="nav-links" aria-label="Primary">
+          <li><a href="./#demo">Demo</a></li>
+          <li><a href="./#capabilities">Capabilities</a></li>
+          <li><a href="playbook.html" aria-current="page">Playbook</a></li>
+          <li><a href="./#download">Download</a></li>
+          <li><a href="./#support">Support</a></li>
+        </ul>
+        <div class="nav-cta">
+          <a class="btn btn-ghost btn-sm" href="https://github.com/Gtarafdar/perfect" target="_blank" rel="noreferrer">Star</a>
+          <a class="btn btn-primary btn-sm" href="https://github.com/Gtarafdar/perfect/releases/latest">Download</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="doc-page">
+      <header class="doc-hero wrap">
+        <p class="kicker">For Cursor agents</p>
+        <h1>Agent playbook</h1>
+        <p class="lede">
+          Perfect gives Cursor hands in real Chrome. Prefer
+          <strong style="color: var(--text)">visible cursor tools</strong>
+          over silent <code>browser_evaluate</code>.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="./#download">Get Perfect</a>
+          <a class="btn btn-ghost" href="./#demo">Copy a demo prompt</a>
+          <a class="btn btn-ghost" href="https://github.com/Gtarafdar/perfect/blob/main/docs/SECURITY.md" target="_blank" rel="noreferrer">Security</a>
+        </div>
+      </header>
+
+      <div class="wrap doc-layout">
+        <nav class="doc-toc glass" aria-label="Playbook sections">
+          <p class="doc-toc-label">On this page</p>
+          <ol>
+            <li><a href="#research">Research a page</a></li>
+            <li><a href="#media">Search &amp; play media</a></li>
+            <li><a href="#debug">Fix / debug UI</a></li>
+            <li><a href="#builders">Builders / iframes</a></li>
+            <li><a href="#advanced">Drag, upload, network, dialogs</a></li>
+            <li><a href="#scripts-fail">When scripts fail</a></li>
+            <li><a href="#tabs">Tab hygiene</a></li>
+            <li><a href="#security">Security</a></li>
+          </ol>
+        </nav>
+
+        <div class="doc-body">
+          <article class="doc-section" id="research">
+            <p class="kicker">01</p>
+            <h2>Research a page</h2>
+            <ol class="doc-steps">
+              <li><code>browser_navigate</code> → URL (reuse returned <code>tabId</code>)</li>
+              <li>
+                <code>browser_snapshot</code> with <code>mode: "text"</code> for readable body, or
+                <code>browser_extract</code> for links/tables
+              </li>
+              <li>
+                <code>browser_screenshot</code> with <code>refs</code> + <code>labels</code> when you need
+                annotated evidence for a doc
+              </li>
+              <li>Write markdown notes in the repo from extract + captions — Perfect supplies evidence only</li>
+            </ol>
+            <pre class="doc-prompt" tabindex="0">Using Perfect: open https://example.com, take a snapshot, and tell me the main heading.</pre>
+          </article>
+
+          <article class="doc-section" id="media">
+            <p class="kicker">02</p>
+            <h2>Search &amp; play media (YouTube)</h2>
+            <p class="prose-p">
+              There is no dedicated <code>browser_search</code> tool — chain the browser tools.
+            </p>
+            <ol class="doc-steps">
+              <li>
+                <code>browser_navigate</code> to a search URL, e.g.
+                <code>https://www.youtube.com/results?search_query=saiyaara+song</code> (reuse <code>tabId</code>)
+              </li>
+              <li><code>browser_wait</code> a few seconds; <code>browser_screenshot</code> if snapshot is flaky on heavy SPAs</li>
+              <li>
+                Prefer a known watch URL when the top result is clear:
+                <code>browser_navigate</code> → <code>https://www.youtube.com/watch?v=…</code>
+              </li>
+              <li><code>browser_press</code> <code>k</code> (YouTube play/pause) or Space if autoplay is blocked</li>
+              <li>Confirm with <code>browser_screenshot</code></li>
+            </ol>
+            <div class="doc-callout glass">
+              <strong>Live smoke (v0.2)</strong>
+              <p>
+                “saiyara” → official YRF <em>Saiyaara Title Song</em> (<code>BSJa1UytM8w</code>) played in the Perfect tab group.
+                On script-heavy sites, snapshot/evaluate can fail; navigate + wait + screenshot + keyboard still works.
+              </p>
+            </div>
+            <pre class="doc-prompt" tabindex="0">Using Perfect: search YouTube for “Saiyaara song”, open the official YRF title track, and play it.</pre>
+          </article>
+
+          <article class="doc-section" id="debug">
+            <p class="kicker">03</p>
+            <h2>Fix / debug UI</h2>
+            <ol class="doc-steps">
+              <li>Snapshot (<code>full</code> if modals/menus matter)</li>
+              <li><code>browser_hover</code> to open menus / reveal flip panels</li>
+              <li><code>browser_click</code> / <code>browser_fill</code> / <code>browser_select</code> with cursor</li>
+              <li><code>browser_wait</code> with <code>selector</code> instead of long sleeps</li>
+              <li><code>browser_console</code> if the page logs errors (protected)</li>
+            </ol>
+          </article>
+
+          <article class="doc-section" id="builders">
+            <p class="kicker">04</p>
+            <h2>Builders (WPBakery / iframes)</h2>
+            <ol class="doc-steps">
+              <li>Snapshot — look for <code>frame:fN</code> on actions and <code>frames[].sameOrigin</code></li>
+              <li>Click/fill refs that live in same-origin iframes (no silent evaluate unless required)</li>
+              <li>Put lasting CSS in <strong style="color: var(--text)">Custom Code → CSS</strong>, not a temporary injected <code>&lt;style&gt;</code></li>
+            </ol>
+          </article>
+
+          <article class="doc-section" id="advanced">
+            <p class="kicker">05</p>
+            <h2>Drag, upload, network, dialogs</h2>
+            <div class="doc-table-wrap">
+              <table class="doc-table">
+                <thead>
+                  <tr>
+                    <th>Need</th>
+                    <th>Tool</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Drag card / item</td>
+                    <td><code>browser_drag</code></td>
+                    <td><code>fromRef</code> + <code>toRef</code> after snapshot (includes <code>[draggable=true]</code>)</td>
+                  </tr>
+                  <tr>
+                    <td>File input</td>
+                    <td><code>browser_upload</code></td>
+                    <td>Absolute <code>path</code> / <code>paths</code>; protected; claimed tab</td>
+                  </tr>
+                  <tr>
+                    <td>See requests</td>
+                    <td><code>browser_network</code></td>
+                    <td>Read-only log; redacts sensitive query params</td>
+                  </tr>
+                  <tr>
+                    <td>alert / confirm / prompt</td>
+                    <td><code>browser_handle_dialog</code></td>
+                    <td><code>accept</code> + optional <code>promptText</code>; arm before the click that opens it</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="doc-section" id="scripts-fail">
+            <p class="kicker">06</p>
+            <h2>When scripts fail</h2>
+            <p class="prose-p">
+              Use <code>browser_extract</code> / <code>mode: "text"</code> snapshot. Do
+              <strong style="color: var(--text)">not</strong> reach for <code>document.cookie</code> / storage (prohibited).
+            </p>
+          </article>
+
+          <article class="doc-section" id="tabs">
+            <p class="kicker">07</p>
+            <h2>Tab hygiene</h2>
+            <ul class="doc-bullets">
+              <li>Reuse <code>tabId</code>; <code>newTab: true</code> only when needed</li>
+              <li>
+                <code>browser_tab_focus</code> / <code>browser_tab_close</code> only for
+                <strong style="color: var(--text)">claimed</strong> Perfect-group tabs
+              </li>
+            </ul>
+          </article>
+
+          <article class="doc-section" id="security">
+            <p class="kicker">08</p>
+            <h2>Security</h2>
+            <p class="prose-p">
+              Manual mode by default. Screenshots, console, network, annotations, and uploads can include PII.
+              See
+              <a href="https://github.com/Gtarafdar/perfect/blob/main/docs/SECURITY.md" target="_blank" rel="noreferrer">SECURITY.md</a>
+              and the
+              <a href="privacy.html">privacy policy</a>.
+            </p>
+            <div class="doc-callout glass">
+              <strong>Token thrift</strong>
+              <p>
+                Reuse <code>tabId</code>; one snapshot then many fills; skip screenshots unless necessary;
+                don’t re-navigate the same URL. On “Extension disconnected”: wait ~2s, <code>browser_status</code>,
+                retry the same tool once.
+              </p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap">
+        <div class="footer-grid">
+          <div>
+            <p class="footer-brand">Perfect</p>
+            <p class="prose-p">Cursor’s hands in Chrome. Free · MIT · unofficial.</p>
+          </div>
+          <div>
+            <p class="footer-col-title">Product</p>
+            <a href="./">Home</a>
+            <a href="./#download">Download</a>
+            <a href="playbook.html">Playbook</a>
+            <a href="./#capabilities">Capabilities</a>
+            <a href="./#demo">Demo prompts</a>
+          </div>
+          <div>
+            <p class="footer-col-title">Trust</p>
+            <a href="privacy.html">Privacy</a>
+            <a href="./#safety">Safety</a>
+            <a href="https://github.com/Gtarafdar/perfect/blob/main/docs/SECURITY.md" target="_blank" rel="noreferrer">Security</a>
+            <a href="https://github.com/Gtarafdar/perfect/blob/main/LICENSE" target="_blank" rel="noreferrer">License</a>
+          </div>
+          <div>
+            <p class="footer-col-title">Connect</p>
+            <a href="./#support">Support</a>
+            <a href="./#maker">Maker</a>
+            <a href="https://github.com/Gtarafdar/perfect" target="_blank" rel="noreferrer">GitHub</a>
+            <a href="https://gtarafdar.com/donate" target="_blank" rel="noreferrer">Donate</a>
+            <a href="https://github.com/Gtarafdar/perfect/releases" target="_blank" rel="noreferrer">Releases</a>
+          </div>
+        </div>
+        <div class="footer-meta">
+          <span>Perfect · MIT © 2026 Gobinda Tarafdar</span>
+          <span>Not affiliated with Cursor / Anysphere</span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

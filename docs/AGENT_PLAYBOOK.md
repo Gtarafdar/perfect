@@ -1,5 +1,7 @@
 # Agent playbook — using Perfect from Cursor
 
+**Beautiful site version (preferred):** https://gtarafdar.github.io/perfect/playbook.html
+
 Perfect gives Cursor hands in real Chrome. Prefer **visible cursor tools** over silent `browser_evaluate`.
 
 ## Research a page
