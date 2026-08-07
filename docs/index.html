@@ -391,8 +391,8 @@
       </section>
 
       <section class="section section-tight" id="how">
-        <div class="wrap how-split reveal">
-          <div>
+        <div class="wrap how-split">
+          <div class="how-copy reveal">
             <p class="kicker">How to connect</p>
             <h2>About two minutes to Linked.</h2>
             <ol class="timeline">
@@ -418,8 +418,18 @@
                 <p>Side panel shows Linked to Cursor. Agent tabs appear in the green Perfect group. Reconnect pings without tearing down a live bridge.</p>
               </li>
             </ol>
+            <div class="how-anchor glass">
+              <p class="how-anchor-title">Then you’re Linked</p>
+              <p class="prose-p" style="margin-bottom: 0.85rem">
+                Agent tabs stay in the green Perfect group — you keep the desk while the bridge runs locally.
+              </p>
+              <div class="hero-actions" style="margin-top: 0">
+                <a class="btn btn-primary btn-sm" href="https://github.com/Gtarafdar/perfect/releases/latest">Download zip</a>
+                <a class="btn btn-ghost btn-sm" href="playbook.html">Open playbook</a>
+              </div>
+            </div>
           </div>
-          <figure class="visual-frame visual-frame-tall">
+          <figure class="visual-frame visual-frame-sticky" data-float-art>
             <img
               src="illustrations/illust-tabs.png"
               width="1024"
@@ -532,46 +542,52 @@
       </section>
 
       <section class="section" id="why">
-        <div class="wrap why-grid reveal">
-          <div class="letter">
-            <p class="kicker">Why I built this</p>
-            <h2>I needed hands in Chrome without surrendering the Mac.</h2>
-            <p>
-              I use Cursor every day. The moment the work left the repo — live forms, WPBakery builders,
-              real research tabs, media checks — I hit the same wall: there was no clean, local, permissioned
-              bridge into the browser I already trust.
-            </p>
-            <p>
-              The alternatives asked for heavy OS permissions, then made the machine feel occupied while the
-              agent ran. That’s fine for a demo. It’s terrible for shipping.
-            </p>
-            <p>
-              So I built Perfect: MCP on localhost, a token you own, a side panel that says Linked, a green tab
-              group you can see, Manual by default, Stop when you need it. Free, open source, unofficial —
-              because the gap was real.
-            </p>
-          </div>
-          <div class="why-side">
-            <figure class="visual-frame">
-              <img
-                src="illustrations/illust-why.png"
-                width="1280"
-                height="720"
-                alt=""
-                role="presentation"
-                loading="lazy"
-              />
-            </figure>
-            <div class="glass panel-lg">
-              <h3>What I needed</h3>
-              <p class="prose-p">Same cookies. Same session. Visible agent tabs. Approvals I control. No Perfect cloud watching.</p>
-              <h3 style="margin-top: 1.25rem">Who it’s for</h3>
-              <p class="prose-p" style="margin-bottom: 0">
-                Anyone doing live R&amp;D with Cursor — marketers, builders, researchers — who wants real execution
-                in Chrome without losing the desk.
+        <div class="wrap why-grid">
+          <div class="why-main reveal">
+            <div class="letter">
+              <p class="kicker">Why I built this</p>
+              <h2>I needed hands in Chrome without surrendering the Mac.</h2>
+              <p>
+                I use Cursor every day. The moment the work left the repo — live forms, WPBakery builders,
+                real research tabs, media checks — I hit the same wall: there was no clean, local, permissioned
+                bridge into the browser I already trust.
+              </p>
+              <p>
+                The alternatives asked for heavy OS permissions, then made the machine feel occupied while the
+                agent ran. That’s fine for a demo. It’s terrible for shipping.
+              </p>
+              <p>
+                So I built Perfect: MCP on localhost, a token you own, a side panel that says Linked, a green tab
+                group you can see, Manual by default, Stop when you need it. Free, open source, unofficial —
+                because the gap was real.
               </p>
             </div>
+            <div class="why-fills">
+              <div class="glass panel-lg">
+                <h3>What I needed</h3>
+                <p class="prose-p" style="margin-bottom: 0">
+                  Same cookies. Same session. Visible agent tabs. Approvals I control. No Perfect cloud watching.
+                </p>
+              </div>
+              <div class="glass panel-lg">
+                <h3>Who it’s for</h3>
+                <p class="prose-p" style="margin-bottom: 0">
+                  Anyone doing live R&amp;D with Cursor — marketers, builders, researchers — who wants real execution
+                  in Chrome without losing the desk.
+                </p>
+              </div>
+            </div>
           </div>
+          <figure class="visual-frame visual-frame-sticky why-art reveal" data-float-art>
+            <img
+              src="illustrations/illust-why.png"
+              width="1280"
+              height="720"
+              alt=""
+              role="presentation"
+              loading="lazy"
+            />
+          </figure>
         </div>
       </section>
 

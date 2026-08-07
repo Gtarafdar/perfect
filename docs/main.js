@@ -436,4 +436,28 @@
       kick();
     }
   }
+
+  /* Soft scroll float for section art (How / Why) */
+  const floatArts = [...document.querySelectorAll("[data-float-art]")];
+  if (floatArts.length && !reduceMotion) {
+    let floatRaf = 0;
+    function paintFloat() {
+      floatRaf = 0;
+      floatArts.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        const view = window.innerHeight || 1;
+        const mid = rect.top + rect.height / 2;
+        const t = (mid - view / 2) / view;
+        const y = Math.max(-18, Math.min(18, -t * 28));
+        const s = 1 + Math.max(-0.015, Math.min(0.015, -t * 0.02));
+        el.style.transform = `translate3d(0, ${y.toFixed(2)}px, 0) scale(${s.toFixed(4)})`;
+      });
+    }
+    function onFloat() {
+      if (!floatRaf) floatRaf = window.requestAnimationFrame(paintFloat);
+    }
+    window.addEventListener("scroll", onFloat, { passive: true });
+    window.addEventListener("resize", onFloat, { passive: true });
+    onFloat();
+  }
 })();
