@@ -160,6 +160,7 @@
   function pauseDemoAuto(ms = 10000) {
     demoAuto = false;
     clearDemoTimers();
+    clearTabProgress(picker);
     window.setTimeout(() => {
       if (reduceMotion) return;
       demoAuto = true;
@@ -271,10 +272,14 @@
   function pauseStackAuto(ms = 10000) {
     stackAuto = false;
     clearStackTimer();
+    clearTabProgress(stackBtns);
     window.setTimeout(() => {
       if (reduceMotion) return;
       stackAuto = true;
-      if (stackVisible) scheduleNextShot();
+      if (stackVisible) {
+        runTabProgress(stackBtns[shotIndex], STACK_DWELL);
+        scheduleNextShot();
+      }
     }, ms);
   }
 
