@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  assertTokenStrength,
-  loadOrCreateConfig,
-  mintTokenHex,
-  parseWsPort,
-  MIN_TOKEN_HEX_LEN,
-} from "../../packages/mcp-server/src/config.js";
-import {
   assertTokenHex,
   buildChatPrompt,
   buildConnectJson,
@@ -14,6 +7,14 @@ import {
   mintTokenHex as mintExt,
   MIN_TOKEN_HEX_LEN as EXT_MIN,
 } from "../../extension/src/connect-snippet.js";
+import { shouldOpenWelcome } from "../../extension/src/welcome-gate.js";
+import {
+  assertTokenStrength,
+  loadOrCreateConfig,
+  mintTokenHex,
+  parseWsPort,
+  MIN_TOKEN_HEX_LEN,
+} from "../../packages/mcp-server/src/config.js";
 
 describe("config env precedence", () => {
   it("uses PERFECT_TOKEN from env over anything else", () => {
@@ -60,13 +61,28 @@ describe("connect-snippet builders", () => {
     expect(assertTokenHex(t)).toBe(true);
   });
 
-  it("puts token only under env for github default", () => {
+  it("puts token only under env for npm default", () => {
+    const entry = buildMcpServerEntry({
+      token,
+      wsPort: 17321,
+      mode: "npm",
+    });
+    const json = JSON.stringify(entry);
+    expect(entry).toMatchObject({
+      command: "npx",
+      args: ["-y", "perfect-mcp"],
+      env: { PERFECT_TOKEN: token, PERFECT_WS_PORT: "17321" },
+    });
+    expect(JSON.stringify(entry.args)).not.toContain(token);
+    expect(json).toContain(token);
+  });
+
+  it("github mode still uses package=github install", () => {
     const entry = buildMcpServerEntry({
       token,
       wsPort: 17321,
       mode: "github",
     });
-    const json = JSON.stringify(entry);
     expect(entry).toMatchObject({
       command: "npx",
       args: [
@@ -74,10 +90,7 @@ describe("connect-snippet builders", () => {
         "--package=github:Gtarafdar/perfect",
         "perfect-mcp",
       ],
-      env: { PERFECT_TOKEN: token, PERFECT_WS_PORT: "17321" },
     });
-    expect(JSON.stringify(entry.args)).not.toContain(token);
-    expect(json).toContain(token);
   });
 
   it("node mode requires serverPath", () => {
@@ -87,23 +100,68 @@ describe("connect-snippet builders", () => {
   });
 
   it("connect JSON nests under mcpServers.perfect", () => {
-    const raw = buildConnectJson({ token, wsPort: 17321, mode: "github" });
+    const raw = buildConnectJson({ token, wsPort: 17321, mode: "npm" });
     const parsed = JSON.parse(raw);
     expect(parsed.mcpServers.perfect.env.PERFECT_TOKEN).toBe(token);
+    expect(parsed.mcpServers.perfect.args).toEqual(["-y", "perfect-mcp"]);
   });
 
-  it("operator prompt is merge-safe and guides Linked", () => {
-    const prompt = buildChatPrompt({ token, wsPort: 17321, mode: "github" });
+  it("operator prompt is merge-safe, npm-first, and includes GitHub fallback", () => {
+    const prompt = buildChatPrompt({ token, wsPort: 17321, mode: "npm" });
     expect(prompt.toLowerCase()).toContain("merge");
     expect(prompt).toMatch(/do not (replace|delete)/i);
     expect(prompt).toContain("mcpServers");
     expect(prompt).toContain("perfect-mcp");
-    expect(prompt).toContain("GitHub");
+    expect(prompt).toContain("npx");
+    expect(prompt).toMatch(/github/i);
+    expect(prompt).toContain("--package=github:Gtarafdar/perfect");
     expect(prompt).toContain("EADDRINUSE");
     expect(prompt).toContain("browser_status");
     expect(prompt).toContain("Linked");
     expect(prompt).toContain(token);
     expect(prompt.toLowerCase()).not.toMatch(/enable skip|set.*skip mode/);
-    expect((prompt.match(new RegExp(token, "g")) ?? []).length).toBe(1);
+    // token once in npm block + once in github fallback block
+    expect((prompt.match(new RegExp(token, "g")) ?? []).length).toBe(2);
+  });
+});
+
+describe("welcome gate", () => {
+  it("opens on install", () => {
+    expect(
+      shouldOpenWelcome({
+        reason: "install",
+        currentVersion: "0.2.0",
+        welcomeSeenVersion: "0.2.0",
+      }),
+    ).toBe(true);
+  });
+
+  it("opens on update when version not yet seen", () => {
+    expect(
+      shouldOpenWelcome({
+        reason: "update",
+        currentVersion: "0.2.0",
+        welcomeSeenVersion: "0.1.0",
+      }),
+    ).toBe(true);
+  });
+
+  it("does not reopen same version on update", () => {
+    expect(
+      shouldOpenWelcome({
+        reason: "update",
+        currentVersion: "0.2.0",
+        welcomeSeenVersion: "0.2.0",
+      }),
+    ).toBe(false);
+  });
+
+  it("ignores chrome_update / other reasons", () => {
+    expect(
+      shouldOpenWelcome({
+        reason: "chrome_update",
+        currentVersion: "0.2.0",
+      }),
+    ).toBe(false);
   });
 });

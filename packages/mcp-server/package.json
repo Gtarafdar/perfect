@@ -1,6 +1,6 @@
 {
   "name": "perfect-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Perfect MCP server — give Cursor hands in your Chrome",
   "type": "module",
   "bin": {
@@ -21,7 +21,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@perfect/protocol": "0.1.0",
+    "@perfect/protocol": "0.2.0",
     "@types/ws": "^8.18.0",
     "esbuild": "^0.25.1"
   },

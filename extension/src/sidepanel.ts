@@ -51,7 +51,7 @@ function snippetOpts(state: State) {
   return {
     token: state.settings.token,
     wsPort: state.settings.wsPort || 17321,
-    mode: "github" as const,
+    mode: "npm" as const,
   };
 }
 
@@ -257,7 +257,7 @@ function flashHud(message: string): void {
 
 document.getElementById("stopBtn")!.addEventListener("click", () => {
   flashHud("Stop sent — cancelling in-flight actions…");
-  chrome.runtime.sendMessage({ type: "perfect_stop" }, (resp) => {
+  chrome.runtime.sendMessage({ type: "perfect_stop" }, () => {
     flashHud(
       chrome.runtime.lastError
         ? `Stop failed: ${chrome.runtime.lastError.message}`

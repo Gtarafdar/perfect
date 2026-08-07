@@ -22,10 +22,12 @@ Cursor  --MCP stdio-->  @perfect/mcp  --localhost WS + token-->  Chrome extensio
 
 ## Quick start
 
-1. Install the Chrome extension (`extension/dist` after `npm run build`)
-2. Open Perfect → **Copy setup prompt for Cursor**
-3. Paste into Cursor — it merges MCP config and guides you
+1. Install the Chrome extension (`extension/dist` after `npm run build`, or Chrome Web Store when published)
+2. Open Perfect (welcome page on first install, or side panel) → **Copy setup prompt for Cursor**
+3. Paste into Cursor — it merges MCP config (`npx -y perfect-mcp`; GitHub fallback if npm is missing) and guides you
 4. Enable **perfect** in Settings → MCP if asked → **Linked**
+
+Node.js 20+ is required locally for the MCP server.
 
 ## Try this prompt
 

@@ -128,7 +128,8 @@ async function waitForPermission(prompt: {
   await chrome.storage.local.set({ pendingPermission: prompt });
   void chrome.runtime.sendMessage({ type: "perfect_event", event: "permission", payload: prompt }).catch(() => {});
   try {
-    await chrome.sidePanel.open({ windowId: (await chrome.windows.getCurrent()).id });
+    const win = await chrome.windows.getCurrent();
+    if (win.id != null) await chrome.sidePanel.open({ windowId: win.id });
   } catch {
     /* may fail without user gesture */
   }

@@ -18,7 +18,7 @@ cd perfect && npm install && npm run build
 3. Paste into Cursor — agent merges `~/.cursor/mcp.json` (keeps other servers) and guides enable
 4. Panel shows **Linked to Cursor**
 
-For local git builds, point MCP at `packages/mcp-server/dist/index.js` with `PERFECT_TOKEN` (or use `npx -y --package=github:Gtarafdar/perfect perfect-mcp`).
+For end users, the setup prompt uses `npx -y perfect-mcp` (GitHub fallback if unpublished). For local git builds, point MCP at `packages/mcp-server/dist/index.js` with `PERFECT_TOKEN`.
 
 ## Fun 30s prompt
 

@@ -19,13 +19,13 @@ describe("classifyAction", () => {
     expect(r.risk).toBe("prohibited");
   });
 
-  it("protects password fields", () => {
+  it("blocks pay now", () => {
     const r = classifyAction({
-      tool: "browser_fill",
-      url: "https://example.com/login",
-      inputType: "password",
+      tool: "browser_click",
+      url: "https://shop.example.com/checkout",
+      label: "Pay now",
     });
-    expect(r.risk).toBe("protected");
+    expect(r.risk).toBe("prohibited");
   });
 
   it("blocks cookie evaluate", () => {
@@ -35,6 +35,24 @@ describe("classifyAction", () => {
       evaluateCode: "document.cookie",
     });
     expect(r.risk).toBe("prohibited");
+  });
+
+  it("blocks localStorage evaluate", () => {
+    const r = classifyAction({
+      tool: "browser_evaluate",
+      url: "https://example.com",
+      evaluateCode: "localStorage.getItem('x')",
+    });
+    expect(r.risk).toBe("prohibited");
+  });
+
+  it("protects password fields", () => {
+    const r = classifyAction({
+      tool: "browser_fill",
+      url: "https://example.com/login",
+      inputType: "password",
+    });
+    expect(r.risk).toBe("protected");
   });
 
   it("allows normal click", () => {
@@ -94,6 +112,25 @@ describe("classifyAction", () => {
     ).toBe("protected");
   });
 
+  it("protects handle_dialog as protected when sensitive", () => {
+    expect(
+      classifyAction({
+        tool: "browser_handle_dialog",
+        url: "https://example.com",
+        text: "Enter token abc",
+      }).risk,
+    ).toBe("protected");
+  });
+
+  it("protects checkout navigate URLs", () => {
+    expect(
+      classifyAction({
+        tool: "browser_navigate",
+        url: "https://shop.example.com/checkout",
+      }).risk,
+    ).toBe("protected");
+  });
+
   it("allows drag as low unless prohibited label", () => {
     expect(
       classifyAction({
@@ -112,6 +149,24 @@ describe("classifyAction", () => {
         text: "password=secret123",
       }).risk,
     ).toBe("protected");
+  });
+});
+
+describe("upload path policy", () => {
+  function assertAbsoluteUploadPaths(paths: string[]): void {
+    if (!paths.length || paths.some((p) => !p || typeof p !== "string" || !p.startsWith("/"))) {
+      throw new Error("Upload requires absolute file path(s)");
+    }
+  }
+
+  it("rejects relative upload paths", () => {
+    expect(() => assertAbsoluteUploadPaths(["./secret.txt"])).toThrow(/absolute/);
+    expect(() => assertAbsoluteUploadPaths(["secret.txt"])).toThrow(/absolute/);
+    expect(() => assertAbsoluteUploadPaths([])).toThrow(/absolute/);
+  });
+
+  it("accepts absolute upload paths", () => {
+    expect(() => assertAbsoluteUploadPaths(["/tmp/file.pdf"])).not.toThrow();
   });
 });
 

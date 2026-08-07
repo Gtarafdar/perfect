@@ -6,6 +6,7 @@ import {
 } from "./security.js";
 import { runTool, resolvePermission, requestStop, getPendingPermission } from "./tools.js";
 import * as cdp from "./cdp.js";
+import { shouldOpenWelcome } from "./welcome-gate.js";
 
 let ws: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -40,8 +41,29 @@ function stopKeepAlive(): void {
 
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 
-chrome.runtime.onInstalled.addListener(() => {
-  void ensureToken().then(() => connectLoop());
+chrome.runtime.onInstalled.addListener((details) => {
+  void (async () => {
+    await ensureToken();
+    void connectLoop();
+    const currentVersion = chrome.runtime.getManifest().version;
+    const stored = await chrome.storage.local.get("welcomeSeenVersion");
+    const welcomeSeenVersion =
+      typeof stored.welcomeSeenVersion === "string"
+        ? stored.welcomeSeenVersion
+        : undefined;
+    if (
+      shouldOpenWelcome({
+        reason: details.reason,
+        currentVersion,
+        welcomeSeenVersion,
+      })
+    ) {
+      await chrome.tabs.create({
+        url: chrome.runtime.getURL("welcome.html"),
+      });
+      await chrome.storage.local.set({ welcomeSeenVersion: currentVersion });
+    }
+  })();
 });
 
 chrome.runtime.onStartup.addListener(() => {

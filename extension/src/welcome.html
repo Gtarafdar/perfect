@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Welcome to Perfect</title>
+    <link rel="stylesheet" href="welcome.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <p class="eyebrow">Perfect</p>
+          <h1>Cursor’s hands in Chrome</h1>
+          <p class="lede">
+            Unofficial open-source MCP bridge. Not affiliated with Cursor, Anysphere, Google, or Anthropic.
+          </p>
+        </div>
+      </header>
+
+      <section class="block">
+        <h2>How to connect (about 2 minutes)</h2>
+        <ol class="steps">
+          <li>Click the Perfect icon (or open the side panel) — a bridge token is created on your machine.</li>
+          <li>Press <strong>Copy setup prompt for Cursor</strong>.</li>
+          <li>Paste that prompt into a Cursor chat and let Cursor merge only the <code>perfect</code> MCP entry.</li>
+          <li>In Cursor Settings → Tools &amp; MCP, enable <strong>perfect</strong> (toggle off/on if it was already on).</li>
+          <li>When the side panel says <strong>Linked to Cursor</strong>, you are ready.</li>
+        </ol>
+        <div class="row">
+          <button type="button" class="btn primary" id="openPanel">Open side panel</button>
+          <button type="button" class="btn" id="copyPrompt">Copy setup prompt</button>
+        </div>
+        <p class="hint" id="copyHint"></p>
+      </section>
+
+      <section class="block">
+        <h2>Permission modes</h2>
+        <p>
+          Default is <strong>Manual</strong> — Perfect asks before acting. Auto pauses on protected or new sites.
+          Skip is dangerous; prohibited actions (for example Buy now / checkout) stay blocked.
+        </p>
+      </section>
+
+      <section class="block">
+        <h2>Safety</h2>
+        <ul>
+          <li><strong>Stop</strong> in the side panel or on-page HUD cancels work and detaches the debugger.</li>
+          <li>Agent tabs live in a visible green <strong>Perfect</strong> tab group.</li>
+          <li>The <code>debugger</code> permission is used only for local Chrome DevTools Protocol automation — no Perfect cloud.</li>
+          <li>You need Node.js 20+ locally so Cursor can run the MCP server via <code>npx</code>.</li>
+        </ul>
+      </section>
+
+      <section class="block">
+        <h2>Try a prompt</h2>
+        <p>After Linked, paste in Cursor:</p>
+        <pre class="prompt">Using Perfect: open https://example.com, take a snapshot, and tell me the main heading.</pre>
+        <p class="hint">Or: search YouTube for a song and play it — Perfect chains navigate / wait / press, not a special search API.</p>
+      </section>
+
+      <footer class="foot">
+        <a href="https://github.com/Gtarafdar/perfect" target="_blank" rel="noreferrer">GitHub</a>
+        <span>·</span>
+        <a href="https://github.com/Gtarafdar/perfect/blob/main/docs/privacy.md" target="_blank" rel="noreferrer">Privacy</a>
+        <span>·</span>
+        <a href="https://github.com/Gtarafdar/perfect/blob/main/docs/AGENT_PLAYBOOK.md" target="_blank" rel="noreferrer">Playbook</a>
+      </footer>
+    </main>
+    <script type="module" src="welcome.js"></script>
+  </body>
+</html>

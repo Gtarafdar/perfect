@@ -76,7 +76,7 @@
           <button type="button" class="btn block ghost" id="copyConnect">Copy raw MCP JSON</button>
           <label class="field-label" for="devServerPath" style="margin-top:10px">Local server.js (git fallback only)</label>
           <input id="devServerPath" type="text" placeholder="/path/to/packages/mcp-server/dist/server.js" autocomplete="off" />
-          <p class="hint">Leave empty to install from GitHub via npx (no npm publish needed). Optional local path for git developers.</p>
+          <p class="hint">Default install uses npm (<code>npx -y perfect-mcp</code>). Leave empty unless you need a local path for git developers. GitHub npx is the fallback if the npm package is missing.</p>
         </details>
       </section>
 

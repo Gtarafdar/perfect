@@ -40,8 +40,20 @@ await esbuild.build({
   logLevel: "info",
 });
 
+await esbuild.build({
+  entryPoints: [join(root, "src/welcome.ts")],
+  bundle: true,
+  outfile: join(dist, "welcome.js"),
+  format: "esm",
+  target: "chrome120",
+  sourcemap: true,
+  logLevel: "info",
+});
+
 cpSync(join(root, "src/sidepanel.html"), join(dist, "sidepanel.html"));
 cpSync(join(root, "src/sidepanel.css"), join(dist, "sidepanel.css"));
+cpSync(join(root, "src/welcome.html"), join(dist, "welcome.html"));
+cpSync(join(root, "src/welcome.css"), join(dist, "welcome.css"));
 cpSync(join(root, "manifest.json"), join(dist, "manifest.json"));
 
 for (const name of [
