@@ -574,13 +574,14 @@ h3 {
   border: 1px solid var(--line);
   color: var(--muted);
   background: rgba(0, 0, 0, 0.25);
-  transition: border-color 0.25s, color 0.25s, background 0.25s;
+  transition: border-color 0.35s var(--ease), color 0.35s var(--ease), background 0.35s var(--ease), transform 0.35s var(--ease);
 }
 
 .tool-chip.is-on {
   border-color: var(--line-strong);
-  color: var(--accent);
-  background: var(--accent-dim);
+  color: #0a0b0a;
+  background: var(--accent);
+  transform: translateY(-1px);
 }
 
 .prompt-picker {
@@ -654,7 +655,7 @@ h3 {
   padding: 0.85rem 0.95rem;
   font: inherit;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  transition: background 0.35s var(--ease), border-color 0.35s var(--ease), color 0.35s var(--ease);
 }
 
 .stack-steps button.is-active {
@@ -673,18 +674,32 @@ h3 {
 .stack-panel {
   padding: 0.85rem;
   min-width: 0;
+  position: relative;
 }
 
 .stack-panel img {
   width: 100%;
   border-radius: 12px;
   border: 1px solid var(--line);
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.55s var(--ease), transform 0.55s var(--ease);
+}
+
+.stack-panel img.is-swap {
+  opacity: 0;
+  transform: translateY(6px);
 }
 
 .stack-caption {
   margin: 0.85rem 0.35rem 0.2rem;
   color: var(--muted);
   font-size: 0.92rem;
+  transition: opacity 0.35s var(--ease);
+}
+
+.stack-caption.is-swap {
+  opacity: 0;
 }
 
 .matrix {
